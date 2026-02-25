@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import AvatarInitials from '@/components/AvatarInitials';
+import GlobalSearch from '@/components/GlobalSearch';
 import {
   LayoutDashboard, Building2, Users, FileText, Home, PenTool,
   Bot, Globe, MessageSquare, BarChart3, Settings, Shield,
@@ -37,10 +38,23 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [commandOpen, setCommandOpen] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const recognitionRef = useRef<any>(null);
   const confirmedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const unreadCount = mockNotifications.filter(n => !n.read).length;
+
+  // ⌘K shortcut
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   const startVoice = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -165,70 +179,17 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
-            {/* Search with Voice */}
-            <div className={`hidden md:flex items-center gap-2 rounded-lg border px-3 py-2 w-80 transition-all duration-300 ${
-              voiceState === 'listening'
-                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                : voiceState === 'confirmed'
-                ? 'border-success bg-success/5'
-                : 'border-border bg-background'
-            }`}>
-              <Search className={`h-4 w-4 shrink-0 transition-colors ${
-                voiceState === 'listening' ? 'text-primary' : voiceState === 'confirmed' ? 'text-success' : 'text-muted-foreground'
-              }`} />
-              <input
-                type="text"
-                value={searchValue}
-                onChange={e => setSearchValue(e.target.value)}
-                placeholder="Rechercher..."
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-              />
-
-              {/* Voice button */}
-              <button
-                onClick={voiceState === 'listening' ? stopVoice : startVoice}
-                className={`relative shrink-0 rounded-md p-1.5 transition-all ${
-                  voiceState === 'listening'
-                    ? 'bg-primary text-primary-foreground'
-                    : voiceState === 'confirmed'
-                    ? 'bg-success/15 text-success'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                title="Recherche vocale"
-              >
-                {voiceState === 'listening' ? (
-                  <>
-                    <Mic className="h-3.5 w-3.5 relative z-10" />
-                    <span className="absolute inset-0 rounded-md bg-primary animate-ping opacity-30" />
-                  </>
-                ) : voiceState === 'confirmed' ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <Mic className="h-3.5 w-3.5" />
-                )}
-              </button>
-
-              {/* Sound wave animation */}
-              {voiceState === 'listening' && (
-                <div className="flex items-center gap-[3px] shrink-0 ml-1">
-                  {[0, 1, 2, 3, 4].map(i => (
-                    <span
-                      key={i}
-                      className="w-[3px] rounded-full bg-primary animate-bounce"
-                      style={{
-                        height: `${10 + Math.random() * 8}px`,
-                        animationDelay: `${i * 100}ms`,
-                        animationDuration: '0.6s',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-
+            {/* Search — opens ⌘K */}
+            <button
+              onClick={() => setCommandOpen(true)}
+              className="hidden md:flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 w-80 text-sm text-muted-foreground hover:border-primary/30 hover:bg-muted/30 transition-all"
+            >
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Rechercher…</span>
               <kbd className="hidden lg:inline-flex h-5 items-center rounded border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground shrink-0">
                 ⌘K
               </kbd>
-            </div>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -303,6 +264,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {children}
         </main>
       </div>
+      <GlobalSearch open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
 };
