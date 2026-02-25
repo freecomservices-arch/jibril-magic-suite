@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import PageTransition from '@/components/PageTransition';
-import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight, Edit } from 'lucide-react';
+import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight, Edit, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { mockTransactions, mockProperties, mockContacts, formatMAD, Transaction } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import TransactionFormModal from '@/components/modals/CreateTransactionModal';
@@ -23,10 +25,11 @@ interface KanbanCardProps {
   tx: Transaction;
   onDragStart: (e: React.DragEvent, txId: string) => void;
   onEdit: () => void;
+  onDelete: () => void;
   type: 'Vente' | 'Location';
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, type }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, onDelete, type }) => {
   const property = mockProperties.find(p => p.id === tx.propertyId);
   const contact = mockContacts.find(c => c.id === tx.contactId);
   const accentColor = type === 'Vente' ? 'text-primary' : 'text-accent';
@@ -57,13 +60,22 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, type }
             </div>
           )}
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className="rounded-md p-1 text-muted-foreground/40 hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
-          title="Modifier"
-        >
-          <Edit className="h-3 w-3" />
-        </button>
+        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="rounded-md p-1 text-muted-foreground/40 hover:text-foreground hover:bg-muted transition-colors"
+            title="Modifier"
+          >
+            <Edit className="h-3 w-3" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="rounded-md p-1 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Supprimer"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -75,6 +87,7 @@ interface KanbanColumnProps {
   onDragStart: (e: React.DragEvent, txId: string) => void;
   onDrop: (e: React.DragEvent, stage: string) => void;
   onEditTx: (tx: Transaction) => void;
+  onDeleteTx: (tx: Transaction) => void;
   type: 'Vente' | 'Location';
   isOver: boolean;
   onDragOver: (e: React.DragEvent, stage: string) => void;
@@ -82,7 +95,7 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
-  stage, transactions, onDragStart, onDrop, onEditTx, type, isOver, onDragOver, onDragLeave,
+  stage, transactions, onDragStart, onDrop, onEditTx, onDeleteTx, type, isOver, onDragOver, onDragLeave,
 }) => {
   const colors = stageColors[stage];
 
@@ -106,7 +119,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       <div className="flex-1 space-y-0">
         {transactions.length > 0 ? (
           transactions.map(tx => (
-            <KanbanCard key={tx.id} tx={tx} onDragStart={onDragStart} onEdit={() => onEditTx(tx)} type={type} />
+            <KanbanCard key={tx.id} tx={tx} onDragStart={onDragStart} onEdit={() => onEditTx(tx)} onDelete={() => onDeleteTx(tx)} type={type} />
           ))
         ) : (
           <div className={cn("rounded-lg border-2 border-dashed p-6 text-center transition-colors flex-1 flex flex-col items-center justify-center", isOver ? "border-primary/40 bg-primary/5" : "border-border/50")}>
@@ -144,7 +157,16 @@ const Transactions: React.FC = () => {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const draggedTxId = useRef<string | null>(null);
+
+  const confirmDelete = () => {
+    if (deletingTx) {
+      setTransactions(prev => prev.filter(t => t.id !== deletingTx.id));
+      toast.success('Transaction supprimée');
+      setDeletingTx(null);
+    }
+  };
 
   const totalCommissions = transactions.reduce((s, t) => s + t.commission, 0);
   const venteTx = transactions.filter(t => t.type === 'Vente');
@@ -226,7 +248,7 @@ const Transactions: React.FC = () => {
           <StageProgress stages={saleStages} transactions={venteTx} />
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {saleStages.map(stage => (
-              <KanbanColumn key={stage} stage={stage} transactions={venteTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Vente" onEditTx={openEdit} />
+              <KanbanColumn key={stage} stage={stage} transactions={venteTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Vente" onEditTx={openEdit} onDeleteTx={setDeletingTx} />
             ))}
           </div>
         </div>
@@ -238,7 +260,7 @@ const Transactions: React.FC = () => {
           <StageProgress stages={locationStages} transactions={locationTx} />
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {locationStages.map(stage => (
-              <KanbanColumn key={stage} stage={stage} transactions={locationTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Location" onEditTx={openEdit} />
+              <KanbanColumn key={stage} stage={stage} transactions={locationTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Location" onEditTx={openEdit} onDeleteTx={setDeletingTx} />
             ))}
           </div>
         </div>
@@ -276,6 +298,20 @@ const Transactions: React.FC = () => {
           }
         }}
       />
+      <AlertDialog open={!!deletingTx} onOpenChange={(open) => !open && setDeletingTx(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette transaction ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageTransition>
   );
 };

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
-  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone, Map
+  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone, Map, Trash2
 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { mockProperties, formatMAD, CITIES, QUARTIERS, PROPERTY_TYPES } from '@/data/mockData';
 import type { Property } from '@/data/mockData';
 import EmptyState from '@/components/EmptyState';
@@ -42,7 +44,7 @@ const demoPhotos = [
   { src: '/placeholder.svg', alt: 'Terrasse vue mer' },
 ];
 
-const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void; onEdit: () => void }> = ({ property, onOpenGallery, onEdit }) => {
+const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void; onEdit: () => void; onDelete: () => void }> = ({ property, onOpenGallery, onEdit, onDelete }) => {
   const TypeIcon = typeIcons[property.type] || Building2;
   return (
     <div className="group rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all duration-300 overflow-hidden animate-fade-in">
@@ -94,13 +96,16 @@ const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void; on
           <button className="flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
             <FileText className="h-3 w-3" /> PDF
           </button>
+          <button onClick={onDelete} className="flex items-center gap-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/20 transition-colors">
+            <Trash2 className="h-3 w-3" /> Supprimer
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void; onEdit: () => void }> = ({ property, onOpenGallery, onEdit }) => {
+const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void; onEdit: () => void; onDelete: () => void }> = ({ property, onOpenGallery, onEdit, onDelete }) => {
   const TypeIcon = typeIcons[property.type] || Building2;
   return (
     <div className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
@@ -152,6 +157,9 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
         <button className="flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
           <Phone className="h-3 w-3" /> Appeler
         </button>
+        <button onClick={onDelete} className="flex items-center gap-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/20 transition-colors">
+          <Trash2 className="h-3 w-3" /> Supprimer
+        </button>
       </div>
     </div>
   );
@@ -168,6 +176,15 @@ const Properties: React.FC = () => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [deletingProperty, setDeletingProperty] = useState<Property | null>(null);
+
+  const confirmDelete = () => {
+    if (deletingProperty) {
+      setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
+      toast.success(`"${deletingProperty.title}" supprimé`);
+      setDeletingProperty(null);
+    }
+  };
 
   const filtered = properties.filter(p => {
     if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.quartier.toLowerCase().includes(search.toLowerCase())) return false;
@@ -228,8 +245,8 @@ const Properties: React.FC = () => {
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}>
           {filtered.map((p, i) => (
             viewMode === 'detail'
-              ? <PropertyListRow key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} />
-              : <PropertyCard key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} />
+              ? <PropertyListRow key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} onDelete={() => setDeletingProperty(p)} />
+              : <PropertyCard key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} onDelete={() => setDeletingProperty(p)} />
           ))}
         </div>
       ) : (
@@ -276,6 +293,20 @@ const Properties: React.FC = () => {
         }
       }}
     />
+    <AlertDialog open={!!deletingProperty} onOpenChange={(open) => !open && setDeletingProperty(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Supprimer ce bien ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Êtes-vous sûr de vouloir supprimer « {deletingProperty?.title} » ? Cette action est irréversible.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </PageTransition>
   );
 };
