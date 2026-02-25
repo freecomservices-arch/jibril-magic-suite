@@ -1,13 +1,16 @@
 import React from 'react';
-import { Settings, Moon, Sun, Monitor, Bell, Globe, Download, Lock, User, Palette } from 'lucide-react';
+import PageTransition from '@/components/PageTransition';
+import { Settings, Moon, Sun, Monitor, Waves, Leaf, Bell, Globe, Download, Lock, User, Palette } from 'lucide-react';
 import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AvatarInitials from '@/components/AvatarInitials';
 
 const themes: { mode: ThemeMode; icon: React.FC<any>; label: string; desc: string }[] = [
-  { mode: 'dark', icon: Moon, label: 'Mode Sombre', desc: 'Bleu nuit profond — confortable pour les yeux' },
+  { mode: 'lime', icon: Leaf, label: 'Vert Lime', desc: 'Charcoal & lime — audacieux et moderne' },
+  { mode: 'dark', icon: Moon, label: 'Mode Sombre', desc: 'Bleu nuit profond — confortable' },
   { mode: 'middle', icon: Monitor, label: 'Mode Medium', desc: 'Gris ardoise — équilibre parfait' },
-  { mode: 'light', icon: Sun, label: 'Mode Clair', desc: 'Blanc pur — lumineux et professionnel' },
+  { mode: 'light', icon: Sun, label: 'Mode Clair', desc: 'Blanc perle — lumineux et pro' },
+  { mode: 'ocean', icon: Waves, label: 'Bleu Océan', desc: 'Bleu profond — immersif' },
 ];
 
 const SettingsPage: React.FC = () => {
@@ -15,7 +18,8 @@ const SettingsPage: React.FC = () => {
   const { user } = useAuth();
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
+    <PageTransition>
+    <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
           <Settings className="h-6 w-6 text-primary" /> Paramètres
@@ -43,7 +47,7 @@ const SettingsPage: React.FC = () => {
         <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2 mb-4">
           <Palette className="h-4 w-4 text-primary" /> Thème d'affichage
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {themes.map(t => (
             <button
               key={t.mode}
@@ -79,6 +83,7 @@ const SettingsPage: React.FC = () => {
         </div>
       ))}
     </div>
+    </PageTransition>
   );
 };
 

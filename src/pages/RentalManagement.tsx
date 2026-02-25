@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { Home, FileText, DollarSign, AlertTriangle, CheckCircle2, Calendar, Plus, Receipt, Users, TrendingDown, TrendingUp } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import AvatarInitials from '@/components/AvatarInitials';
@@ -12,7 +13,8 @@ const baux = [
 
 const RentalManagement: React.FC = () => {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -75,6 +77,7 @@ const RentalManagement: React.FC = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

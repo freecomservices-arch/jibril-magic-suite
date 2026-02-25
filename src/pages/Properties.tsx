@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
   Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List
@@ -111,7 +112,8 @@ const Properties: React.FC = () => {
   });
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -174,6 +176,7 @@ const Properties: React.FC = () => {
         />
       )}
     </div>
+    </PageTransition>
   );
 };
 

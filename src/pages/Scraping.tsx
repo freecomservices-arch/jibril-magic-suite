@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { Globe, Search, Users, Building2, AlertCircle, CheckCircle2, Filter, Plus, RefreshCw, UserPlus, ExternalLink, Copy } from 'lucide-react';
 import AvatarInitials from '@/components/AvatarInitials';
 import StatCard from '@/components/StatCard';
@@ -27,7 +28,8 @@ const statusColors: Record<string, string> = {
 
 const Scraping: React.FC = () => {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -109,6 +111,7 @@ const Scraping: React.FC = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

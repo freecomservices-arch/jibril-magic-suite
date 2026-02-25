@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { FileText, ArrowRight, DollarSign, CheckCircle2, Clock, AlertCircle, Plus, Building2, Users } from 'lucide-react';
 import { mockTransactions, mockProperties, mockContacts, formatMAD } from '@/data/mockData';
 import AvatarInitials from '@/components/AvatarInitials';
@@ -23,7 +24,8 @@ const Transactions: React.FC = () => {
   const locationTx = mockTransactions.filter(t => t.type === 'Location');
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -142,6 +144,7 @@ const Transactions: React.FC = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

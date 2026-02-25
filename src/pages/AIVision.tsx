@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { Bot, Upload, Camera, Eye, Star, Tag, FileText, Plus, Sparkles, CheckCircle2 } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
 
@@ -19,7 +20,8 @@ const mockVisitReports = [
 
 const AIVision: React.FC = () => {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -117,6 +119,7 @@ const AIVision: React.FC = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

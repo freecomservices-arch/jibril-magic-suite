@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { MessageSquare, Send, Phone, Clock, Users, Building2, Plus, Search, Paperclip, Smile } from 'lucide-react';
 import AvatarInitials from '@/components/AvatarInitials';
 import StatCard from '@/components/StatCard';
@@ -19,7 +20,8 @@ const templates = [
 
 const Communication: React.FC = () => {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -134,6 +136,7 @@ const Communication: React.FC = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 
