@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
   Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight
@@ -82,7 +83,8 @@ const Contacts: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -144,6 +146,7 @@ const Contacts: React.FC = () => {
         />
       )}
     </div>
+    </PageTransition>
   );
 };
 

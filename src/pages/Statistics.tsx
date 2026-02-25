@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { BarChart3, TrendingUp, Users, Building2, DollarSign, Download, FileText, Phone } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import AvatarInitials from '@/components/AvatarInitials';
@@ -14,7 +15,8 @@ const agentData = [
 ];
 
 const Statistics: React.FC = () => (
-  <div className="space-y-6 animate-fade-in">
+  <PageTransition>
+  <div className="space-y-6">
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -63,6 +65,7 @@ const Statistics: React.FC = () => (
       </div>
     </div>
   </div>
+  </PageTransition>
 );
 
 export default Statistics;

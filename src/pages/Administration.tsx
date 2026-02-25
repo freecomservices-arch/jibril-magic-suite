@@ -1,4 +1,5 @@
 import React from 'react';
+import PageTransition from '@/components/PageTransition';
 import { Shield, Users, Settings, Activity, Database, FileCheck, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import AvatarInitials from '@/components/AvatarInitials';
@@ -13,7 +14,8 @@ const logs = [
 const Administration: React.FC = () => {
   const { allUsers } = useAuth();
   return (
-    <div className="space-y-6 animate-fade-in">
+    <PageTransition>
+    <div className="space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
           <Shield className="h-6 w-6 text-primary" /> Administration
@@ -74,6 +76,7 @@ const Administration: React.FC = () => {
         ))}
       </div>
     </div>
+    </PageTransition>
   );
 };
 
