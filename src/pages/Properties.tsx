@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
-  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera
+  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone
 } from 'lucide-react';
 import { mockProperties, formatMAD, CITIES, QUARTIERS, PROPERTY_TYPES } from '@/data/mockData';
 import type { Property } from '@/data/mockData';
@@ -113,12 +113,85 @@ const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void }> 
   );
 };
 
+// Detailed list row (horizontal: photo | details | actions)
+const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void }> = ({ property, onOpenGallery }) => {
+  const TypeIcon = typeIcons[property.type] || Building2;
+  return (
+    <div className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
+      {/* Photo left */}
+      <div
+        className="relative w-full sm:w-48 h-36 sm:h-auto bg-gradient-to-br from-primary/10 via-accent/5 to-muted shrink-0 cursor-pointer"
+        onClick={onOpenGallery}
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <TypeIcon className="h-12 w-12 text-primary/20" />
+        </div>
+        <div className="absolute top-2 left-2 flex gap-1">
+          <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${statusColors[property.status]}`}>{property.status}</span>
+        </div>
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-1.5 py-0.5 text-[9px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
+          <Camera className="h-3 w-3" /> {property.photos.length || 5}
+        </div>
+      </div>
+
+      {/* Details center */}
+      <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-card-foreground line-clamp-1">{property.title}</h3>
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" /> {property.quartier}, {property.city}
+              </p>
+            </div>
+            <p className="font-heading text-base font-bold text-primary whitespace-nowrap">
+              {formatMAD(property.price)}
+              {property.transaction === 'Location' && <span className="text-[10px] font-normal text-muted-foreground">/mois</span>}
+            </p>
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {property.surface} m²</span>
+            {property.bedrooms && <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {property.bedrooms} ch.</span>}
+            {property.bathrooms && <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {property.bathrooms} sdb</span>}
+            {property.rooms && <span className="flex items-center gap-1">🚪 {property.rooms} pièces</span>}
+          </div>
+
+          <div className="mt-2 flex gap-1.5">
+            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${mandatColors[property.mandat]}`}>{property.mandat}</span>
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{property.transaction}</span>
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{property.type}</span>
+          </div>
+        </div>
+
+        <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{property.description}</p>
+      </div>
+
+      {/* Actions right */}
+      <div className="flex sm:flex-col items-center justify-end gap-1.5 p-3 sm:border-l border-t sm:border-t-0 border-border shrink-0">
+        <button onClick={onOpenGallery} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
+          <Eye className="h-3 w-3" /> Voir
+        </button>
+        <button className="flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Edit className="h-3 w-3" /> Modifier
+        </button>
+        <button className="flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success hover:bg-success/20 transition-colors">
+          <MessageSquare className="h-3 w-3" /> WhatsApp
+        </button>
+        <button className="flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Phone className="h-3 w-3" /> Appeler
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Properties: React.FC = () => {
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detail'>('grid');
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -174,20 +247,31 @@ const Properties: React.FC = () => {
           {['Disponible', 'Réservé', 'Vendu', 'Loué', 'Archivé'].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <div className="flex rounded-lg border border-border bg-card p-0.5">
-          <button onClick={() => setViewMode('grid')} className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+          <button onClick={() => setViewMode('grid')} className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Grille">
             <Grid3X3 className="h-4 w-4" />
           </button>
-          <button onClick={() => setViewMode('list')} className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+          <button onClick={() => setViewMode('list')} className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Cartes">
             <List className="h-4 w-4" />
+          </button>
+          <button onClick={() => setViewMode('detail')} className={`rounded-md p-1.5 ${viewMode === 'detail' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Liste détaillée">
+            <LayoutList className="h-4 w-4" />
           </button>
         </div>
       </div>
 
       {/* Grid */}
       {filtered.length > 0 ? (
-        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}>
+        <div className={
+          viewMode === 'grid'
+            ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
+            : viewMode === 'list'
+            ? 'space-y-3'
+            : 'space-y-3'
+        }>
           {filtered.map((p, i) => (
-            <PropertyCard key={p.id} property={p} onOpenGallery={() => openGallery(i)} />
+            viewMode === 'detail'
+              ? <PropertyListRow key={p.id} property={p} onOpenGallery={() => openGallery(i)} />
+              : <PropertyCard key={p.id} property={p} onOpenGallery={() => openGallery(i)} />
           ))}
         </div>
       ) : (
