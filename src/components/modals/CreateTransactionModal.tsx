@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText } from 'lucide-react';
+import { FileText, Edit } from 'lucide-react';
 import { mockProperties, mockContacts } from '@/data/mockData';
+import type { Transaction } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 
 const transactionSchema = z.object({
@@ -20,7 +21,7 @@ const transactionSchema = z.object({
   commission: z.coerce.number().min(0, 'Commission invalide').max(100000000, 'Commission trop élevée'),
 });
 
-type TransactionFormData = z.infer<typeof transactionSchema>;
+export type TransactionFormData = z.infer<typeof transactionSchema>;
 
 const saleStages = ['Offre', 'Compromis', 'Notaire', 'Signé'];
 const locationStages = ['Visite', 'Bail', 'État des lieux', 'Quittances'];
@@ -29,22 +30,45 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: TransactionFormData) => void;
+  initialData?: Transaction | null;
 }
 
-const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) => {
+const TransactionFormModal: React.FC<Props> = ({ open, onClose, onSubmit, initialData }) => {
+  const isEdit = !!initialData;
   const { toast } = useToast();
   const { register, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: { type: 'Vente', stage: 'Offre' },
   });
 
+  useEffect(() => {
+    if (open && initialData) {
+      reset({
+        propertyId: initialData.propertyId,
+        contactId: initialData.contactId,
+        type: initialData.type,
+        stage: initialData.stage,
+        amount: initialData.amount,
+        commission: initialData.commission,
+      });
+    } else if (open && !initialData) {
+      reset({ type: 'Vente', stage: 'Offre' });
+    }
+  }, [open, initialData, reset]);
+
   const txType = watch('type');
   const stages = txType === 'Vente' ? saleStages : locationStages;
+  const watchedPropertyId = watch('propertyId');
+  const watchedContactId = watch('contactId');
+  const watchedStage = watch('stage');
 
   const onValid = (data: TransactionFormData) => {
     onSubmit(data);
     const prop = mockProperties.find(p => p.id === data.propertyId);
-    toast({ title: 'Transaction créée', description: `Transaction pour "${prop?.title || 'Bien'}" ajoutée.` });
+    toast({
+      title: isEdit ? 'Transaction modifiée' : 'Transaction créée',
+      description: `Transaction pour "${prop?.title || 'Bien'}" ${isEdit ? 'mise à jour' : 'ajoutée'}.`,
+    });
     reset();
     onClose();
   };
@@ -54,16 +78,18 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5 text-primary" /> Nouvelle transaction
+            {isEdit ? <Edit className="h-5 w-5 text-primary" /> : <FileText className="h-5 w-5 text-primary" />}
+            {isEdit ? 'Modifier la transaction' : 'Nouvelle transaction'}
           </DialogTitle>
-          <DialogDescription>Créez un nouveau dossier de transaction.</DialogDescription>
+          <DialogDescription>
+            {isEdit ? 'Modifiez les informations de la transaction.' : 'Créez un nouveau dossier de transaction.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onValid)} className="space-y-4 mt-2">
-          {/* Property */}
           <div className="space-y-1.5">
             <Label>Bien immobilier *</Label>
-            <Select onValueChange={(v) => setValue('propertyId', v)} defaultValue="">
+            <Select onValueChange={(v) => setValue('propertyId', v)} value={watchedPropertyId || ''}>
               <SelectTrigger><SelectValue placeholder="Sélectionner un bien" /></SelectTrigger>
               <SelectContent>
                 {mockProperties.map(p => (
@@ -74,10 +100,9 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
             {errors.propertyId && <p className="text-xs text-destructive">{errors.propertyId.message}</p>}
           </div>
 
-          {/* Contact */}
           <div className="space-y-1.5">
             <Label>Contact / Client *</Label>
-            <Select onValueChange={(v) => setValue('contactId', v)} defaultValue="">
+            <Select onValueChange={(v) => setValue('contactId', v)} value={watchedContactId || ''}>
               <SelectTrigger><SelectValue placeholder="Sélectionner un contact" /></SelectTrigger>
               <SelectContent>
                 {mockContacts.map(c => (
@@ -88,7 +113,6 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
             {errors.contactId && <p className="text-xs text-destructive">{errors.contactId.message}</p>}
           </div>
 
-          {/* Type + Stage */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Type *</Label>
@@ -97,7 +121,7 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
                   setValue('type', v as any);
                   setValue('stage', v === 'Vente' ? 'Offre' : 'Visite');
                 }}
-                defaultValue="Vente"
+                value={txType || 'Vente'}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -108,7 +132,7 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
             </div>
             <div className="space-y-1.5">
               <Label>Étape *</Label>
-              <Select onValueChange={(v) => setValue('stage', v)} defaultValue={stages[0]}>
+              <Select onValueChange={(v) => setValue('stage', v)} value={watchedStage || stages[0]}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -118,7 +142,6 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
             </div>
           </div>
 
-          {/* Amount + Commission */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="t-amount">Montant (DH) *</Label>
@@ -132,10 +155,9 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={() => { reset(); onClose(); }}>Annuler</Button>
-            <Button type="submit">Créer la transaction</Button>
+            <Button type="submit">{isEdit ? 'Enregistrer' : 'Créer la transaction'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -143,4 +165,4 @@ const CreateTransactionModal: React.FC<Props> = ({ open, onClose, onSubmit }) =>
   );
 };
 
-export default CreateTransactionModal;
+export default TransactionFormModal;
