@@ -7,6 +7,8 @@ import AvatarInitials from '@/components/AvatarInitials';
 import CreateUserModal, { type UserFormData } from '@/components/modals/CreateUserModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { UserRowSkeleton, usePageLoading } from '@/components/Skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const initialLogs = [
   { user: 'Admin Jibril', action: 'Modification bien P1', date: '25/02/2026 10:30', ip: '192.168.1.10' },
@@ -18,6 +20,7 @@ const initialLogs = [
 const Administration: React.FC = () => {
   const { allUsers } = useAuth();
   const [users, setUsers] = useState<User[]>(allUsers);
+  const loading = usePageLoading(500);
   const [logs, setLogs] = useState(initialLogs);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -70,6 +73,24 @@ const Administration: React.FC = () => {
       ip: '192.168.1.10',
     }, ...prev]);
   };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="space-y-6">
+          <div><Skeleton className="h-7 w-40" /><Skeleton className="h-4 w-64 mt-2" /></div>
+          <div className="rounded-lg border border-border bg-card card-shadow">
+            <div className="border-b border-border px-5 py-4"><Skeleton className="h-5 w-36" /></div>
+            {[...Array(5)].map((_, i) => <UserRowSkeleton key={i} />)}
+          </div>
+          <div className="rounded-lg border border-border bg-card card-shadow">
+            <div className="border-b border-border px-5 py-4"><Skeleton className="h-5 w-32" /></div>
+            {[...Array(4)].map((_, i) => <UserRowSkeleton key={i} />)}
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>

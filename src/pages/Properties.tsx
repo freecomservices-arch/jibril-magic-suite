@@ -12,6 +12,8 @@ import EmptyState from '@/components/EmptyState';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import PropertyMap from '@/components/PropertyMap';
 import PropertyFormModal from '@/components/modals/CreatePropertyModal';
+import { PropertyCardSkeleton, StatCardSkeleton, usePageLoading } from '@/components/Skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const statusColors: Record<string, string> = {
   'Disponible': 'bg-success/15 text-success border-success/20',
@@ -167,6 +169,7 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
 
 const Properties: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>(mockProperties);
+  const loading = usePageLoading(700);
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -197,6 +200,20 @@ const Properties: React.FC = () => {
   const openGallery = () => { setLightboxIndex(0); setLightboxOpen(true); };
   const openCreate = () => { setEditingProperty(null); setModalOpen(true); };
   const openEdit = (p: Property) => { setEditingProperty(p); setModalOpen(true); };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="space-y-5">
+          <div className="flex justify-between"><div><Skeleton className="h-7 w-48" /><Skeleton className="h-4 w-32 mt-2" /></div><Skeleton className="h-10 w-36 rounded-lg" /></div>
+          <div className="flex gap-3"><Skeleton className="h-10 flex-1 max-w-md rounded-lg" /><Skeleton className="h-10 w-28 rounded-lg" /><Skeleton className="h-10 w-28 rounded-lg" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => <PropertyCardSkeleton key={i} />)}
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>

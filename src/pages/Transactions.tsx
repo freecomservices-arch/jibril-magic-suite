@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { mockTransactions, mockProperties, mockContacts, formatMAD, Transaction } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import TransactionFormModal from '@/components/modals/CreateTransactionModal';
+import { StatCardSkeleton, KanbanCardSkeleton, usePageLoading } from '@/components/Skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const saleStages = ['Offre', 'Compromis', 'Notaire', 'Signé'] as const;
 const locationStages = ['Visite', 'Bail', 'État des lieux', 'Quittances'] as const;
@@ -154,6 +156,7 @@ const StageProgress: React.FC<{ stages: readonly string[]; transactions: Transac
 
 const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const loading = usePageLoading(700);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
@@ -200,6 +203,30 @@ const Transactions: React.FC = () => {
 
   const openCreate = () => { setEditingTx(null); setModalOpen(true); };
   const openEdit = (tx: Transaction) => { setEditingTx(tx); setModalOpen(true); };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="space-y-6">
+          <div className="flex justify-between"><div><Skeleton className="h-7 w-52" /><Skeleton className="h-4 w-64 mt-2" /></div><Skeleton className="h-10 w-44 rounded-lg" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => <StatCardSkeleton key={i} />)}
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5 card-shadow">
+            <Skeleton className="h-5 w-36 mb-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-xl border border-border/50 bg-muted/30 p-3 min-h-[200px] space-y-2">
+                  <Skeleton className="h-5 w-20 rounded-md" />
+                  <KanbanCardSkeleton /><KanbanCardSkeleton />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
