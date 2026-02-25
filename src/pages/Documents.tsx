@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
-import { PenTool, FileText, Shield, Download, Plus, FilePlus, Eye, Send, Lock, Upload } from 'lucide-react';
+import { PenTool, FileText, Shield, Download, Plus, FilePlus, Eye, Send, Lock, Upload, Edit } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
 import FileUpload from '@/components/FileUpload';
+import SignaturePad from '@/components/SignaturePad';
 
 const templates = [
   { id: '1', name: 'Mandat de Vente', category: 'Mandats', icon: FileText, description: 'Mandat simple ou exclusif conforme au droit marocain' },
@@ -28,6 +29,8 @@ const categoryColors: Record<string, string> = {
 
 const Documents: React.FC = () => {
   const [showUpload, setShowUpload] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
+  const [signedDataUrl, setSignedDataUrl] = useState<string | null>(null);
 
   return (
     <PageTransition>
@@ -99,7 +102,43 @@ const Documents: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Documents */}
+      {/* Signature Pad */}
+      <div className="rounded-xl border border-border bg-card p-6 card-shadow">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
+            <PenTool className="h-4 w-4 text-primary" /> Signature Électronique
+          </h2>
+          <button
+            onClick={() => setShowSignature(!showSignature)}
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Edit className="h-3 w-3" /> {showSignature ? 'Masquer' : 'Ouvrir le pad'}
+          </button>
+        </div>
+        {showSignature ? (
+          <SignaturePad
+            onSave={(dataUrl) => setSignedDataUrl(dataUrl)}
+            label="Dessinez votre signature ci-dessous"
+          />
+        ) : (
+          <div
+            onClick={() => setShowSignature(true)}
+            className="rounded-lg border-2 border-dashed border-border bg-background p-8 text-center cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-all"
+          >
+            {signedDataUrl ? (
+              <div className="flex flex-col items-center gap-2">
+                <img src={signedDataUrl} alt="Signature" className="h-16 object-contain opacity-70" />
+                <p className="text-xs text-success font-medium">✓ Signature enregistrée — Cliquez pour modifier</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <PenTool className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">Cliquez pour ouvrir le pad de signature</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       <div className="rounded-lg border border-border bg-card card-shadow">
         <div className="border-b border-border px-5 py-4 flex items-center justify-between">
           <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
