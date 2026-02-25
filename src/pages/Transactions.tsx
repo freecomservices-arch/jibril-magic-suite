@@ -94,8 +94,13 @@ const Transactions: React.FC = () => {
                     </div>
                   );
                 }) : (
-                  <div className="rounded-md border border-dashed border-border p-4 text-center">
-                    <p className="text-xs text-muted-foreground">Aucune transaction</p>
+                  <div className="rounded-md border border-dashed border-border p-4 text-center space-y-2">
+                    <svg className="h-12 w-16 mx-auto" viewBox="0 0 80 60" fill="none">
+                      <rect x="10" y="10" width="24" height="16" rx="3" fill="hsl(var(--muted-foreground))" opacity="0.1" />
+                      <rect x="10" y="30" width="24" height="16" rx="3" fill="hsl(var(--muted-foreground))" opacity="0.07" />
+                      <path d="M40 26L50 18" stroke="hsl(var(--muted-foreground))" strokeWidth="1.5" opacity="0.2" strokeLinecap="round" />
+                    </svg>
+                    <p className="text-[10px] text-muted-foreground">Aucune transaction</p>
                   </div>
                 )}
               </div>
@@ -134,8 +139,13 @@ const Transactions: React.FC = () => {
                     </div>
                   );
                 }) : (
-                  <div className="rounded-md border border-dashed border-border p-4 text-center">
-                    <p className="text-xs text-muted-foreground">Aucune transaction</p>
+                  <div className="rounded-md border border-dashed border-border p-4 text-center space-y-2">
+                    <svg className="h-12 w-16 mx-auto" viewBox="0 0 80 60" fill="none">
+                      <rect x="10" y="10" width="24" height="16" rx="3" fill="hsl(var(--muted-foreground))" opacity="0.1" />
+                      <rect x="10" y="30" width="24" height="16" rx="3" fill="hsl(var(--muted-foreground))" opacity="0.07" />
+                      <path d="M40 26L50 18" stroke="hsl(var(--muted-foreground))" strokeWidth="1.5" opacity="0.2" strokeLinecap="round" />
+                    </svg>
+                    <p className="text-[10px] text-muted-foreground">Aucune transaction</p>
                   </div>
                 )}
               </div>

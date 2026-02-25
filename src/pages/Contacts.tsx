@@ -138,6 +138,7 @@ const Contacts: React.FC = () => {
         </div>
       ) : (
         <EmptyState
+          variant="contacts"
           icon={Users}
           title="Aucun contact trouvé"
           description="Ajoutez votre premier contact pour commencer à gérer votre relation client."
