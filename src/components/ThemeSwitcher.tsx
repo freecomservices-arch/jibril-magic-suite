@@ -38,8 +38,8 @@ const ThemeSwitcher: React.FC = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-44 rounded-lg border border-border bg-card shadow-xl animate-scale-in">
-          <div className="px-3 py-2 border-b border-border">
+        <div className="absolute right-0 top-11 z-50 w-44 rounded-lg border border-border/50 backdrop-blur-xl bg-card/90 modal-shadow animate-scale-in">
+          <div className="px-3 py-2 border-b border-border/50">
             <p className="text-xs font-semibold text-card-foreground">Thème</p>
           </div>
           <div className="py-1">
