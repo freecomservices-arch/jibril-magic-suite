@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
-  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List
+  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera
 } from 'lucide-react';
 import { mockProperties, formatMAD, CITIES, QUARTIERS, PROPERTY_TYPES } from '@/data/mockData';
 import type { Property } from '@/data/mockData';
 import EmptyState from '@/components/EmptyState';
+import PhotoLightbox from '@/components/PhotoLightbox';
 
 const statusColors: Record<string, string> = {
   'Disponible': 'bg-success/15 text-success border-success/20',
@@ -31,12 +32,24 @@ const typeIcons: Record<string, React.FC<any>> = {
   'Bureau': Building2,
 };
 
-const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
+// Mock photos for demo lightbox
+const demoPhotos = [
+  { src: '/placeholder.svg', alt: 'Salon' },
+  { src: '/placeholder.svg', alt: 'Chambre principale' },
+  { src: '/placeholder.svg', alt: 'Cuisine' },
+  { src: '/placeholder.svg', alt: 'Salle de bain' },
+  { src: '/placeholder.svg', alt: 'Terrasse vue mer' },
+];
+
+const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void }> = ({ property, onOpenGallery }) => {
   const TypeIcon = typeIcons[property.type] || Building2;
   return (
     <div className="group rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all duration-300 overflow-hidden animate-fade-in">
-      {/* Image placeholder */}
-      <div className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden">
+      {/* Image — click to open lightbox */}
+      <div
+        className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden cursor-pointer"
+        onClick={onOpenGallery}
+      >
         <div className="absolute inset-0 flex items-center justify-center">
           <TypeIcon className="h-16 w-16 text-primary/20" />
         </div>
@@ -52,6 +65,10 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
           <span className="rounded-md bg-card/90 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-card-foreground">
             {property.transaction}
           </span>
+        </div>
+        {/* Photo count overlay */}
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-2 py-1 text-[10px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
+          <Camera className="h-3 w-3" /> {property.photos.length || 5} photos
         </div>
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-card/80 to-transparent h-16" />
       </div>
@@ -78,7 +95,7 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 
         {/* Actions */}
         <div className="mt-3 flex gap-1.5 pt-3 border-t border-border">
-          <button className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
+          <button onClick={onOpenGallery} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
             <Eye className="h-3 w-3" /> Voir
           </button>
           <button className="flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -102,6 +119,8 @@ const Properties: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const filtered = mockProperties.filter(p => {
     if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.quartier.toLowerCase().includes(search.toLowerCase())) return false;
@@ -110,6 +129,11 @@ const Properties: React.FC = () => {
     if (statusFilter && p.status !== statusFilter) return false;
     return true;
   });
+
+  const openGallery = (propertyIndex: number) => {
+    setLightboxIndex(0);
+    setLightboxOpen(true);
+  };
 
   return (
     <PageTransition>
@@ -162,8 +186,8 @@ const Properties: React.FC = () => {
       {/* Grid */}
       {filtered.length > 0 ? (
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}>
-          {filtered.map(p => (
-            <PropertyCard key={p.id} property={p} />
+          {filtered.map((p, i) => (
+            <PropertyCard key={p.id} property={p} onOpenGallery={() => openGallery(i)} />
           ))}
         </div>
       ) : (
@@ -176,6 +200,14 @@ const Properties: React.FC = () => {
         />
       )}
     </div>
+
+    {/* Photo Lightbox */}
+    <PhotoLightbox
+      photos={demoPhotos}
+      initialIndex={lightboxIndex}
+      open={lightboxOpen}
+      onClose={() => setLightboxOpen(false)}
+    />
     </PageTransition>
   );
 };
