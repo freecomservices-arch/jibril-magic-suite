@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
-  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit
+  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit, Trash2
 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { mockContacts, formatMAD } from '@/data/mockData';
 import type { Contact } from '@/data/mockData';
 import AvatarInitials from '@/components/AvatarInitials';
@@ -27,7 +29,7 @@ const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
   );
 };
 
-const ContactRow: React.FC<{ contact: Contact; onEdit: () => void }> = ({ contact, onEdit }) => (
+const ContactRow: React.FC<{ contact: Contact; onEdit: () => void; onDelete: () => void }> = ({ contact, onEdit, onDelete }) => (
   <div className="group flex items-center gap-4 rounded-lg border border-border bg-card p-4 card-shadow hover:elevated-shadow transition-all animate-fade-in">
     <AvatarInitials name={contact.name} size="lg" />
     <div className="flex-1 min-w-0">
@@ -53,6 +55,9 @@ const ContactRow: React.FC<{ contact: Contact; onEdit: () => void }> = ({ contac
         <button onClick={onEdit} className="rounded-md bg-muted p-2 text-muted-foreground hover:text-foreground transition-colors" title="Modifier">
           <Edit className="h-3.5 w-3.5" />
         </button>
+        <button onClick={onDelete} className="rounded-md bg-destructive/10 p-2 text-destructive hover:bg-destructive/20 transition-colors" title="Supprimer">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
         <button className="rounded-md bg-primary/10 p-2 text-primary hover:bg-primary/20 transition-colors" title="Appeler">
           <Phone className="h-3.5 w-3.5" />
         </button>
@@ -75,6 +80,15 @@ const Contacts: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
+
+  const confirmDelete = () => {
+    if (deletingContact) {
+      setContacts(prev => prev.filter(c => c.id !== deletingContact.id));
+      toast.success(`"${deletingContact.name}" supprimé`);
+      setDeletingContact(null);
+    }
+  };
 
   const filtered = contacts.filter(c => {
     if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -138,7 +152,7 @@ const Contacts: React.FC = () => {
 
       {filtered.length > 0 ? (
         <div className="space-y-3">
-          {filtered.map(c => <ContactRow key={c.id} contact={c} onEdit={() => openEdit(c)} />)}
+          {filtered.map(c => <ContactRow key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeletingContact(c)} />)}
         </div>
       ) : (
         <EmptyState variant="contacts" icon={Users} title="Aucun contact trouvé" description="Ajoutez votre premier contact." actionLabel="Ajouter un contact" onAction={openCreate} />
@@ -177,6 +191,20 @@ const Contacts: React.FC = () => {
         }
       }}
     />
+    <AlertDialog open={!!deletingContact} onOpenChange={(open) => !open && setDeletingContact(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Supprimer ce contact ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Êtes-vous sûr de vouloir supprimer « {deletingContact?.name} » ? Cette action est irréversible.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </PageTransition>
   );
 };
