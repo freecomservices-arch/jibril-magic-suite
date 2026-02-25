@@ -67,21 +67,22 @@ const ContactRow: React.FC<{ contact: Contact }> = ({ contact }) => (
 );
 
 const Contacts: React.FC = () => {
+  const [contacts, setContacts] = useState<Contact[]>(mockContacts);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const filtered = mockContacts.filter(c => {
+  const filtered = contacts.filter(c => {
     if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (typeFilter && c.type !== typeFilter) return false;
     return true;
   });
 
   const stats = {
-    total: mockContacts.length,
-    acquereurs: mockContacts.filter(c => c.type === 'Acquéreur').length,
-    vendeurs: mockContacts.filter(c => c.type === 'Vendeur').length,
-    locataires: mockContacts.filter(c => c.type === 'Locataire').length,
+    total: contacts.length,
+    acquereurs: contacts.filter(c => c.type === 'Acquéreur').length,
+    vendeurs: contacts.filter(c => c.type === 'Vendeur').length,
+    locataires: contacts.filter(c => c.type === 'Locataire').length,
   };
 
   return (
@@ -106,7 +107,7 @@ const Contacts: React.FC = () => {
           { label: 'Acquéreurs', count: stats.acquereurs, icon: UserCheck, color: 'text-primary bg-primary/10' },
           { label: 'Vendeurs', count: stats.vendeurs, icon: ArrowUpRight, color: 'text-accent bg-accent/10' },
           { label: 'Locataires', count: stats.locataires, icon: Users, color: 'text-info bg-info/10' },
-          { label: 'Score moyen', count: Math.round(mockContacts.reduce((s, c) => s + c.score, 0) / mockContacts.length) + '%', icon: Star, color: 'text-warning bg-warning/10' },
+          { label: 'Score moyen', count: contacts.length > 0 ? Math.round(contacts.reduce((s, c) => s + c.score, 0) / contacts.length) + '%' : '0%', icon: Star, color: 'text-warning bg-warning/10' },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 card-shadow">
             <div className={`rounded-lg p-2 ${s.color}`}><s.icon className="h-4 w-4" /></div>
@@ -153,7 +154,22 @@ const Contacts: React.FC = () => {
     <CreateContactModal
       open={createOpen}
       onClose={() => setCreateOpen(false)}
-      onSubmit={(data) => { console.log('New contact:', data); }}
+      onSubmit={(data) => {
+        const newContact: Contact = {
+          id: `c${Date.now()}`,
+          name: data.name,
+          type: data.type,
+          phone: data.phone,
+          email: data.email || undefined,
+          budget: typeof data.budget === 'number' ? data.budget : undefined,
+          exigences: data.exigences || undefined,
+          notes: data.notes || undefined,
+          score: typeof data.score === 'number' ? data.score : 50,
+          agentId: '2',
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+        setContacts(prev => [newContact, ...prev]);
+      }}
     />
     </PageTransition>
   );

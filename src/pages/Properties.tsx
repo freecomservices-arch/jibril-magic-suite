@@ -189,6 +189,7 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void 
 };
 
 const Properties: React.FC = () => {
+  const [properties, setProperties] = useState<Property[]>(mockProperties);
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -198,7 +199,7 @@ const Properties: React.FC = () => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const filtered = mockProperties.filter(p => {
+  const filtered = properties.filter(p => {
     if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.quartier.toLowerCase().includes(search.toLowerCase())) return false;
     if (cityFilter && p.city !== cityFilter) return false;
     if (typeFilter && p.type !== typeFilter) return false;
@@ -221,7 +222,7 @@ const Properties: React.FC = () => {
             <Building2 className="h-6 w-6 text-primary" />
             Biens Immobiliers
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{mockProperties.length} biens • {filtered.length} affichés</p>
+          <p className="text-sm text-muted-foreground mt-1">{properties.length} biens • {filtered.length} affichés</p>
         </div>
         <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4" /> Ajouter un bien
@@ -304,7 +305,29 @@ const Properties: React.FC = () => {
     <CreatePropertyModal
       open={createOpen}
       onClose={() => setCreateOpen(false)}
-      onSubmit={(data) => { console.log('New property:', data); }}
+      onSubmit={(data) => {
+        const newProperty: Property = {
+          id: `p${Date.now()}`,
+          title: data.title,
+          type: data.type,
+          transaction: data.transaction,
+          price: data.price,
+          surface: data.surface,
+          rooms: typeof data.rooms === 'number' ? data.rooms : undefined,
+          bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : undefined,
+          bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : undefined,
+          city: data.city,
+          quartier: data.quartier,
+          address: data.address,
+          description: data.description,
+          status: data.status,
+          mandat: data.mandat,
+          agentId: '2',
+          photos: [],
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+        setProperties(prev => [newProperty, ...prev]);
+      }}
     />
     </PageTransition>
   );
