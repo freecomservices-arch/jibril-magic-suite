@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
-import { Shield, Users, Settings, Activity, Database, FileCheck, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Shield, Users, Settings, Activity, Database, FileCheck, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import type { User } from '@/contexts/AuthContext';
 import AvatarInitials from '@/components/AvatarInitials';
+import CreateUserModal, { type UserFormData } from '@/components/modals/CreateUserModal';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
-const logs = [
+const initialLogs = [
   { user: 'Admin Jibril', action: 'Modification bien P1', date: '25/02/2026 10:30', ip: '192.168.1.10' },
   { user: 'Amin Belhaj', action: 'Ajout contact C8', date: '25/02/2026 09:45', ip: '192.168.1.12' },
   { user: 'Sarah Idrissi', action: 'Création transaction T3', date: '24/02/2026 16:20', ip: '192.168.1.15' },
@@ -13,6 +17,60 @@ const logs = [
 
 const Administration: React.FC = () => {
   const { allUsers } = useAuth();
+  const [users, setUsers] = useState<User[]>(allUsers);
+  const [logs, setLogs] = useState(initialLogs);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => users.filter(u =>
+    !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
+  ), [users, search]);
+
+  const openCreate = () => { setEditingUser(null); setModalOpen(true); };
+  const openEdit = (u: User) => { setEditingUser(u); setModalOpen(true); };
+
+  const handleSubmit = (data: UserFormData) => {
+    if (editingUser) {
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? {
+        ...u, name: data.name, username: data.username, email: data.email, phone: data.phone, role: data.role,
+      } : u));
+      addLog(`Modification utilisateur ${data.name}`);
+      toast.success(`"${data.name}" modifié`);
+    } else {
+      const newUser: User = {
+        id: `u${Date.now()}`,
+        name: data.name,
+        username: data.username,
+        email: data.email,
+        phone: data.phone,
+        role: data.role,
+      };
+      setUsers(prev => [...prev, newUser]);
+      addLog(`Ajout utilisateur ${data.name}`);
+      toast.success(`"${data.name}" créé`);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deletingUser) {
+      setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
+      addLog(`Suppression utilisateur ${deletingUser.name}`);
+      toast.success(`"${deletingUser.name}" supprimé`);
+      setDeletingUser(null);
+    }
+  };
+
+  const addLog = (action: string) => {
+    setLogs(prev => [{
+      user: 'Admin Jibril',
+      action,
+      date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      ip: '192.168.1.10',
+    }, ...prev]);
+  };
+
   return (
     <PageTransition>
     <div className="space-y-6">
@@ -22,37 +80,58 @@ const Administration: React.FC = () => {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Gestion des utilisateurs, paramètres & conformité CNDP</p>
       </div>
+
       {/* Users */}
       <div className="rounded-lg border border-border bg-card card-shadow">
-        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-          <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> Utilisateurs ({allUsers.length})</h2>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"><Plus className="h-3.5 w-3.5" /> Ajouter</button>
+        <div className="border-b border-border px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" /> Utilisateurs ({users.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5">
+              <Search className="h-3.5 w-3.5 text-muted-foreground" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…" className="bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none w-32" />
+            </div>
+            <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+              <Plus className="h-3.5 w-3.5" /> Ajouter
+            </button>
+          </div>
         </div>
         <div className="divide-y divide-border">
-          {allUsers.map(u => (
-            <div key={u.id} className="flex items-center gap-4 px-5 py-3 hover:bg-background-secondary transition-colors">
+          {filtered.map(u => (
+            <div key={u.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition-colors">
               <AvatarInitials name={u.name} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-card-foreground">{u.name}</p>
                 <p className="text-xs text-muted-foreground">{u.email} • {u.phone}</p>
               </div>
-              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${u.role === 'admin' ? 'bg-primary/15 text-primary' : 'bg-accent/15 text-accent'}`}>{u.role}</span>
+              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${u.role === 'admin' ? 'bg-primary/15 text-primary' : 'bg-accent/15 text-accent-foreground'}`}>{u.role}</span>
               <div className="flex gap-1">
-                <button className="rounded-md bg-muted p-1.5 text-muted-foreground hover:text-foreground transition-colors"><Edit className="h-3.5 w-3.5" /></button>
-                {u.role !== 'admin' && <button className="rounded-md bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>}
+                <button onClick={() => openEdit(u)} className="rounded-md bg-muted p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  <Edit className="h-3.5 w-3.5" />
+                </button>
+                {u.role !== 'admin' && (
+                  <button onClick={() => setDeletingUser(u)} className="rounded-md bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20 transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
       </div>
+
       {/* Audit Logs */}
       <div className="rounded-lg border border-border bg-card card-shadow">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /> Logs d'Activité</h2>
+          <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" /> Logs d'Activité
+            <span className="text-xs font-normal text-muted-foreground">({logs.length})</span>
+          </h2>
         </div>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border max-h-80 overflow-y-auto">
           {logs.map((l, i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-3 hover:bg-background-secondary transition-colors">
+            <div key={i} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition-colors">
               <AvatarInitials name={l.user} size="sm" />
               <div className="flex-1"><p className="text-sm text-card-foreground"><span className="font-medium">{l.user}</span> — {l.action}</p></div>
               <p className="text-xs text-muted-foreground">{l.date}</p>
@@ -61,6 +140,7 @@ const Administration: React.FC = () => {
           ))}
         </div>
       </div>
+
       {/* Quick Settings */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
@@ -76,6 +156,28 @@ const Administration: React.FC = () => {
         ))}
       </div>
     </div>
+
+    <CreateUserModal
+      open={modalOpen}
+      onClose={() => { setModalOpen(false); setEditingUser(null); }}
+      initialData={editingUser}
+      onSubmit={handleSubmit}
+    />
+
+    <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Supprimer cet utilisateur ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Supprimer « {deletingUser?.name} » ? Cette action est irréversible.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </PageTransition>
   );
 };
