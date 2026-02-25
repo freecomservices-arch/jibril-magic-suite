@@ -9,6 +9,7 @@ import type { Property } from '@/data/mockData';
 import EmptyState from '@/components/EmptyState';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import PropertyMap from '@/components/PropertyMap';
+import CreatePropertyModal from '@/components/modals/CreatePropertyModal';
 
 const statusColors: Record<string, string> = {
   'Disponible': 'bg-success/15 text-success border-success/20',
@@ -195,6 +196,7 @@ const Properties: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detail' | 'map'>('grid');
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const filtered = mockProperties.filter(p => {
     if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.quartier.toLowerCase().includes(search.toLowerCase())) return false;
@@ -221,7 +223,7 @@ const Properties: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{mockProperties.length} biens • {filtered.length} affichés</p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4" /> Ajouter un bien
         </button>
       </div>
@@ -296,6 +298,13 @@ const Properties: React.FC = () => {
       initialIndex={lightboxIndex}
       open={lightboxOpen}
       onClose={() => setLightboxOpen(false)}
+    />
+
+    {/* Create Property Modal */}
+    <CreatePropertyModal
+      open={createOpen}
+      onClose={() => setCreateOpen(false)}
+      onSubmit={(data) => { console.log('New property:', data); }}
     />
     </PageTransition>
   );
