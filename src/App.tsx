@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
@@ -32,25 +33,28 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
 
 const AppRoutes = () => {
   const { user } = useAuth();
+  const location = useLocation();
 
   return (
-    <Routes>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/biens" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
-      <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
-      <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-      <Route path="/gestion-locative" element={<ProtectedRoute><RentalManagement /></ProtectedRoute>} />
-      <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-      <Route path="/ia-vision" element={<ProtectedRoute><AIVision /></ProtectedRoute>} />
-      <Route path="/scraping" element={<ProtectedRoute><Scraping /></ProtectedRoute>} />
-      <Route path="/communication" element={<ProtectedRoute><Communication /></ProtectedRoute>} />
-      <Route path="/statistiques" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
-      <Route path="/administration" element={<ProtectedRoute adminOnly><Administration /></ProtectedRoute>} />
-      <Route path="/parametres" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/biens" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
+        <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
+        <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+        <Route path="/gestion-locative" element={<ProtectedRoute><RentalManagement /></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+        <Route path="/ia-vision" element={<ProtectedRoute><AIVision /></ProtectedRoute>} />
+        <Route path="/scraping" element={<ProtectedRoute><Scraping /></ProtectedRoute>} />
+        <Route path="/communication" element={<ProtectedRoute><Communication /></ProtectedRoute>} />
+        <Route path="/statistiques" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
+        <Route path="/administration" element={<ProtectedRoute adminOnly><Administration /></ProtectedRoute>} />
+        <Route path="/parametres" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AnimatePresence>
   );
 };
 
