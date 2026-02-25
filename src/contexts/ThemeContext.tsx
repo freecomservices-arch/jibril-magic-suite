@@ -19,7 +19,7 @@ const themeClasses: Record<ThemeMode, string> = {
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    return (localStorage.getItem('jibril-theme') as ThemeMode) || 'dark';
+    return (localStorage.getItem('jibril-theme') as ThemeMode) || 'lime';
   });
 
   useEffect(() => {
