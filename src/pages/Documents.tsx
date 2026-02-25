@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
-import { PenTool, FileText, Shield, Download, Plus, FilePlus, Eye, Send, Lock } from 'lucide-react';
+import { PenTool, FileText, Shield, Download, Plus, FilePlus, Eye, Send, Lock, Upload } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
+import FileUpload from '@/components/FileUpload';
 
 const templates = [
   { id: '1', name: 'Mandat de Vente', category: 'Mandats', icon: FileText, description: 'Mandat simple ou exclusif conforme au droit marocain' },
@@ -16,6 +17,7 @@ const recentDocs = [
   { name: 'Mandat Exclusif — Villa Marina', date: '22/02/2026', status: 'Signé', signedBy: 'Admin Jibril' },
   { name: 'Bail — Apt Haut Founty', date: '10/02/2026', status: 'En attente', signedBy: '' },
   { name: 'Compromis — Apt Founty', date: '15/02/2026', status: 'Signé', signedBy: 'Mohammed El Fassi' },
+  { name: 'Quittance Février — Studio Talborjt', date: '01/02/2026', status: 'Signé', signedBy: 'Samira Alaoui' },
 ];
 
 const categoryColors: Record<string, string> = {
@@ -25,6 +27,8 @@ const categoryColors: Record<string, string> = {
 };
 
 const Documents: React.FC = () => {
+  const [showUpload, setShowUpload] = useState(false);
+
   return (
     <PageTransition>
     <div className="space-y-6">
@@ -36,10 +40,33 @@ const Documents: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">ProSign — Contrats marocains & signature électronique</p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
-          <Plus className="h-4 w-4" /> Créer un document
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowUpload(!showUpload)}
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            <Upload className="h-4 w-4" /> {showUpload ? 'Masquer' : 'Importer'}
+          </button>
+          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+            <Plus className="h-4 w-4" /> Créer un document
+          </button>
+        </div>
       </div>
+
+      {/* Upload Zone */}
+      {showUpload && (
+        <div className="rounded-xl border border-border bg-card p-6 card-shadow animate-fade-in">
+          <h2 className="font-heading text-sm font-semibold text-card-foreground mb-4 flex items-center gap-2">
+            <Upload className="h-4 w-4 text-primary" /> Importer des documents
+          </h2>
+          <FileUpload
+            accept=".pdf,.docx,.doc,.jpg,.png"
+            maxFiles={10}
+            title="Glissez vos contrats ou justificatifs ici"
+            description="PDF, DOCX, JPG, PNG • Max 10 fichiers"
+          />
+        </div>
+      )}
 
       {/* Templates */}
       <div>
