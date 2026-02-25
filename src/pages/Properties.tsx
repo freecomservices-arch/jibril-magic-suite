@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
-  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone
+  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone, Map
 } from 'lucide-react';
 import { mockProperties, formatMAD, CITIES, QUARTIERS, PROPERTY_TYPES } from '@/data/mockData';
 import type { Property } from '@/data/mockData';
 import EmptyState from '@/components/EmptyState';
 import PhotoLightbox from '@/components/PhotoLightbox';
+import PropertyMap from '@/components/PropertyMap';
 
 const statusColors: Record<string, string> = {
   'Disponible': 'bg-success/15 text-success border-success/20',
@@ -191,7 +192,7 @@ const Properties: React.FC = () => {
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detail'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detail' | 'map'>('grid');
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -256,16 +257,19 @@ const Properties: React.FC = () => {
           <button onClick={() => setViewMode('detail')} className={`rounded-md p-1.5 ${viewMode === 'detail' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Liste détaillée">
             <LayoutList className="h-4 w-4" />
           </button>
+          <button onClick={() => setViewMode('map')} className={`rounded-md p-1.5 ${viewMode === 'map' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Carte">
+            <Map className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {/* Grid */}
-      {filtered.length > 0 ? (
+      {/* Content */}
+      {viewMode === 'map' ? (
+        <PropertyMap properties={filtered} />
+      ) : filtered.length > 0 ? (
         <div className={
           viewMode === 'grid'
             ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
-            : viewMode === 'list'
-            ? 'space-y-3'
             : 'space-y-3'
         }>
           {filtered.map((p, i) => (
