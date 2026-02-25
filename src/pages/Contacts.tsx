@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
-  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight
+  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit
 } from 'lucide-react';
 import { mockContacts, formatMAD } from '@/data/mockData';
 import type { Contact } from '@/data/mockData';
 import AvatarInitials from '@/components/AvatarInitials';
 import EmptyState from '@/components/EmptyState';
-import CreateContactModal from '@/components/modals/CreateContactModal';
+import ContactFormModal from '@/components/modals/CreateContactModal';
 
 const typeColors: Record<string, string> = {
   'Acquéreur': 'bg-primary/15 text-primary',
@@ -27,7 +27,7 @@ const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
   );
 };
 
-const ContactRow: React.FC<{ contact: Contact }> = ({ contact }) => (
+const ContactRow: React.FC<{ contact: Contact; onEdit: () => void }> = ({ contact, onEdit }) => (
   <div className="group flex items-center gap-4 rounded-lg border border-border bg-card p-4 card-shadow hover:elevated-shadow transition-all animate-fade-in">
     <AvatarInitials name={contact.name} size="lg" />
     <div className="flex-1 min-w-0">
@@ -50,6 +50,9 @@ const ContactRow: React.FC<{ contact: Contact }> = ({ contact }) => (
     <div className="flex flex-col items-end gap-2">
       <ScoreBadge score={contact.score} />
       <div className="flex gap-1">
+        <button onClick={onEdit} className="rounded-md bg-muted p-2 text-muted-foreground hover:text-foreground transition-colors" title="Modifier">
+          <Edit className="h-3.5 w-3.5" />
+        </button>
         <button className="rounded-md bg-primary/10 p-2 text-primary hover:bg-primary/20 transition-colors" title="Appeler">
           <Phone className="h-3.5 w-3.5" />
         </button>
@@ -70,7 +73,8 @@ const Contacts: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>(mockContacts);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   const filtered = contacts.filter(c => {
     if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -85,6 +89,9 @@ const Contacts: React.FC = () => {
     locataires: contacts.filter(c => c.type === 'Locataire').length,
   };
 
+  const openCreate = () => { setEditingContact(null); setModalOpen(true); };
+  const openEdit = (c: Contact) => { setEditingContact(c); setModalOpen(true); };
+
   return (
     <PageTransition>
     <div className="space-y-5">
@@ -96,12 +103,11 @@ const Contacts: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{stats.total} contacts • {stats.acquereurs} acquéreurs • {stats.vendeurs} vendeurs</p>
         </div>
-        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+        <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
           <UserPlus className="h-4 w-4" /> Nouveau contact
         </button>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Acquéreurs', count: stats.acquereurs, icon: UserCheck, color: 'text-primary bg-primary/10' },
@@ -119,14 +125,10 @@ const Contacts: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 flex-1 min-w-[200px] max-w-md">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un contact..." className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-          />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact..." className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
         </div>
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none">
           <option value="">Tous types</option>
@@ -134,41 +136,45 @@ const Contacts: React.FC = () => {
         </select>
       </div>
 
-      {/* Contact List */}
       {filtered.length > 0 ? (
         <div className="space-y-3">
-          {filtered.map(c => <ContactRow key={c.id} contact={c} />)}
+          {filtered.map(c => <ContactRow key={c.id} contact={c} onEdit={() => openEdit(c)} />)}
         </div>
       ) : (
-        <EmptyState
-          variant="contacts"
-          icon={Users}
-          title="Aucun contact trouvé"
-          description="Ajoutez votre premier contact pour commencer à gérer votre relation client."
-          actionLabel="Ajouter un contact"
-          onAction={() => {}}
-        />
+        <EmptyState variant="contacts" icon={Users} title="Aucun contact trouvé" description="Ajoutez votre premier contact." actionLabel="Ajouter un contact" onAction={openCreate} />
       )}
     </div>
 
-    <CreateContactModal
-      open={createOpen}
-      onClose={() => setCreateOpen(false)}
+    <ContactFormModal
+      open={modalOpen}
+      onClose={() => { setModalOpen(false); setEditingContact(null); }}
+      initialData={editingContact}
       onSubmit={(data) => {
-        const newContact: Contact = {
-          id: `c${Date.now()}`,
-          name: data.name,
-          type: data.type,
-          phone: data.phone,
-          email: data.email || undefined,
-          budget: typeof data.budget === 'number' ? data.budget : undefined,
-          exigences: data.exigences || undefined,
-          notes: data.notes || undefined,
-          score: typeof data.score === 'number' ? data.score : 50,
-          agentId: '2',
-          createdAt: new Date().toISOString().split('T')[0],
-        };
-        setContacts(prev => [newContact, ...prev]);
+        if (editingContact) {
+          setContacts(prev => prev.map(c => c.id === editingContact.id ? {
+            ...c,
+            name: data.name,
+            type: data.type,
+            phone: data.phone,
+            email: data.email || undefined,
+            budget: typeof data.budget === 'number' ? data.budget : undefined,
+            exigences: data.exigences || undefined,
+            notes: data.notes || undefined,
+            score: typeof data.score === 'number' ? data.score : c.score,
+          } : c));
+        } else {
+          const newContact: Contact = {
+            id: `c${Date.now()}`,
+            name: data.name, type: data.type, phone: data.phone,
+            email: data.email || undefined,
+            budget: typeof data.budget === 'number' ? data.budget : undefined,
+            exigences: data.exigences || undefined,
+            notes: data.notes || undefined,
+            score: typeof data.score === 'number' ? data.score : 50,
+            agentId: '2', createdAt: new Date().toISOString().split('T')[0],
+          };
+          setContacts(prev => [newContact, ...prev]);
+        }
       }}
     />
     </PageTransition>

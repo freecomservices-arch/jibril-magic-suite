@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
 import PageTransition from '@/components/PageTransition';
-import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight } from 'lucide-react';
+import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight, Edit } from 'lucide-react';
 import { mockTransactions, mockProperties, mockContacts, formatMAD, Transaction } from '@/data/mockData';
 import { cn } from '@/lib/utils';
-import CreateTransactionModal from '@/components/modals/CreateTransactionModal';
+import TransactionFormModal from '@/components/modals/CreateTransactionModal';
 
 const saleStages = ['Offre', 'Compromis', 'Notaire', 'Signé'] as const;
 const locationStages = ['Visite', 'Bail', 'État des lieux', 'Quittances'] as const;
@@ -22,10 +22,11 @@ const stageColors: Record<string, { bg: string; text: string; border: string; do
 interface KanbanCardProps {
   tx: Transaction;
   onDragStart: (e: React.DragEvent, txId: string) => void;
+  onEdit: () => void;
   type: 'Vente' | 'Location';
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, type }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, type }) => {
   const property = mockProperties.find(p => p.id === tx.propertyId);
   const contact = mockContacts.find(c => c.id === tx.contactId);
   const accentColor = type === 'Vente' ? 'text-primary' : 'text-accent';
@@ -56,6 +57,13 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, type }) => {
             </div>
           )}
         </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="rounded-md p-1 text-muted-foreground/40 hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+          title="Modifier"
+        >
+          <Edit className="h-3 w-3" />
+        </button>
       </div>
     </div>
   );
@@ -66,6 +74,7 @@ interface KanbanColumnProps {
   transactions: Transaction[];
   onDragStart: (e: React.DragEvent, txId: string) => void;
   onDrop: (e: React.DragEvent, stage: string) => void;
+  onEditTx: (tx: Transaction) => void;
   type: 'Vente' | 'Location';
   isOver: boolean;
   onDragOver: (e: React.DragEvent, stage: string) => void;
@@ -73,7 +82,7 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
-  stage, transactions, onDragStart, onDrop, type, isOver, onDragOver, onDragLeave,
+  stage, transactions, onDragStart, onDrop, onEditTx, type, isOver, onDragOver, onDragLeave,
 }) => {
   const colors = stageColors[stage];
 
@@ -84,44 +93,27 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       onDrop={(e) => onDrop(e, stage)}
       className={cn(
         "rounded-xl p-3 border transition-all duration-200 min-h-[200px] flex flex-col",
-        isOver
-          ? "bg-primary/5 border-primary/40 ring-2 ring-primary/20 scale-[1.01]"
-          : "bg-background-secondary border-border/50"
+        isOver ? "bg-primary/5 border-primary/40 ring-2 ring-primary/20 scale-[1.01]" : "bg-background-secondary border-border/50"
       )}
     >
-      {/* Column Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className={cn("h-2 w-2 rounded-full", colors.dot)} />
-          <span className={cn("rounded-md border px-2 py-0.5 text-xs font-semibold", colors.bg, colors.text, colors.border)}>
-            {stage}
-          </span>
+          <span className={cn("rounded-md border px-2 py-0.5 text-xs font-semibold", colors.bg, colors.text, colors.border)}>{stage}</span>
         </div>
-        <span className={cn(
-          "text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center",
-          transactions.length > 0 ? `${colors.bg} ${colors.text}` : "text-muted-foreground"
-        )}>
-          {transactions.length}
-        </span>
+        <span className={cn("text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center", transactions.length > 0 ? `${colors.bg} ${colors.text}` : "text-muted-foreground")}>{transactions.length}</span>
       </div>
-
-      {/* Cards */}
       <div className="flex-1 space-y-0">
         {transactions.length > 0 ? (
           transactions.map(tx => (
-            <KanbanCard key={tx.id} tx={tx} onDragStart={onDragStart} type={type} />
+            <KanbanCard key={tx.id} tx={tx} onDragStart={onDragStart} onEdit={() => onEditTx(tx)} type={type} />
           ))
         ) : (
-          <div className={cn(
-            "rounded-lg border-2 border-dashed p-6 text-center transition-colors flex-1 flex flex-col items-center justify-center",
-            isOver ? "border-primary/40 bg-primary/5" : "border-border/50"
-          )}>
+          <div className={cn("rounded-lg border-2 border-dashed p-6 text-center transition-colors flex-1 flex flex-col items-center justify-center", isOver ? "border-primary/40 bg-primary/5" : "border-border/50")}>
             <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-2">
               <Plus className="h-4 w-4 text-muted-foreground/50" />
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              {isOver ? 'Déposer ici' : 'Glisser une carte ici'}
-            </p>
+            <p className="text-[10px] text-muted-foreground">{isOver ? 'Déposer ici' : 'Glisser une carte ici'}</p>
           </div>
         )}
       </div>
@@ -129,7 +121,6 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   );
 };
 
-// Progress arrows between stages
 const StageProgress: React.FC<{ stages: readonly string[]; transactions: Transaction[] }> = ({ stages, transactions }) => (
   <div className="flex items-center gap-1 mb-4">
     {stages.map((stage, i) => {
@@ -151,7 +142,8 @@ const StageProgress: React.FC<{ stages: readonly string[]; transactions: Transac
 const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const draggedTxId = useRef<string | null>(null);
 
   const totalCommissions = transactions.reduce((s, t) => s + t.commission, 0);
@@ -162,7 +154,6 @@ const Transactions: React.FC = () => {
     draggedTxId.current = txId;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', txId);
-    // Make the drag ghost slightly transparent
     const el = e.currentTarget as HTMLElement;
     el.style.opacity = '0.5';
     requestAnimationFrame(() => { el.style.opacity = '1'; });
@@ -174,26 +165,23 @@ const Transactions: React.FC = () => {
     setDragOverStage(stage);
   }, []);
 
-  const handleDragLeave = useCallback(() => {
-    setDragOverStage(null);
-  }, []);
+  const handleDragLeave = useCallback(() => { setDragOverStage(null); }, []);
 
   const handleDrop = useCallback((e: React.DragEvent, newStage: string) => {
     e.preventDefault();
     setDragOverStage(null);
     const txId = draggedTxId.current || e.dataTransfer.getData('text/plain');
     if (!txId) return;
-
-    setTransactions(prev => prev.map(t =>
-      t.id === txId ? { ...t, stage: newStage as Transaction['stage'] } : t
-    ));
+    setTransactions(prev => prev.map(t => t.id === txId ? { ...t, stage: newStage as Transaction['stage'] } : t));
     draggedTxId.current = null;
   }, []);
+
+  const openCreate = () => { setEditingTx(null); setModalOpen(true); };
+  const openEdit = (tx: Transaction) => { setEditingTx(tx); setModalOpen(true); };
 
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -202,12 +190,11 @@ const Transactions: React.FC = () => {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">{transactions.length} transactions en cours · Glissez les cartes entre les colonnes</p>
           </div>
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+          <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
             <Plus className="h-4 w-4" /> Nouvelle transaction
           </button>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-lg border border-border bg-card p-4 card-shadow flex items-center gap-3">
             <div className="rounded-lg bg-primary/10 p-3"><DollarSign className="h-5 w-5 text-primary" /></div>
@@ -232,72 +219,61 @@ const Transactions: React.FC = () => {
           </div>
         </div>
 
-        {/* Pipeline Vente Kanban */}
         <div className="rounded-xl border border-border bg-card p-5 card-shadow">
           <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2 mb-3">
-            <DollarSign className="h-4 w-4 text-primary" />
-            Pipeline de Vente
+            <DollarSign className="h-4 w-4 text-primary" /> Pipeline de Vente
           </h2>
           <StageProgress stages={saleStages} transactions={venteTx} />
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {saleStages.map(stage => (
-              <KanbanColumn
-                key={stage}
-                stage={stage}
-                transactions={venteTx.filter(t => t.stage === stage)}
-                onDragStart={handleDragStart}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                isOver={dragOverStage === stage}
-                type="Vente"
-              />
+              <KanbanColumn key={stage} stage={stage} transactions={venteTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Vente" onEditTx={openEdit} />
             ))}
           </div>
         </div>
 
-        {/* Pipeline Location Kanban */}
         <div className="rounded-xl border border-border bg-card p-5 card-shadow">
           <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2 mb-3">
-            <Clock className="h-4 w-4 text-accent" />
-            Pipeline de Location
+            <Clock className="h-4 w-4 text-accent" /> Pipeline de Location
           </h2>
           <StageProgress stages={locationStages} transactions={locationTx} />
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {locationStages.map(stage => (
-              <KanbanColumn
-                key={stage}
-                stage={stage}
-                transactions={locationTx.filter(t => t.stage === stage)}
-                onDragStart={handleDragStart}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                isOver={dragOverStage === stage}
-                type="Location"
-              />
+              <KanbanColumn key={stage} stage={stage} transactions={locationTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Location" onEditTx={openEdit} />
             ))}
           </div>
         </div>
       </div>
 
-      <CreateTransactionModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+      <TransactionFormModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingTx(null); }}
+        initialData={editingTx}
         onSubmit={(data) => {
-          const newTx: Transaction = {
-            id: `t${Date.now()}`,
-            propertyId: data.propertyId,
-            contactId: data.contactId,
-            type: data.type,
-            stage: data.stage as Transaction['stage'],
-            amount: data.amount,
-            commission: data.commission,
-            agentId: '2',
-            createdAt: new Date().toISOString().split('T')[0],
-            documents: [],
-          };
-          setTransactions(prev => [...prev, newTx]);
+          if (editingTx) {
+            setTransactions(prev => prev.map(t => t.id === editingTx.id ? {
+              ...t,
+              propertyId: data.propertyId,
+              contactId: data.contactId,
+              type: data.type,
+              stage: data.stage as Transaction['stage'],
+              amount: data.amount,
+              commission: data.commission,
+            } : t));
+          } else {
+            const newTx: Transaction = {
+              id: `t${Date.now()}`,
+              propertyId: data.propertyId,
+              contactId: data.contactId,
+              type: data.type,
+              stage: data.stage as Transaction['stage'],
+              amount: data.amount,
+              commission: data.commission,
+              agentId: '2',
+              createdAt: new Date().toISOString().split('T')[0],
+              documents: [],
+            };
+            setTransactions(prev => [...prev, newTx]);
+          }
         }}
       />
     </PageTransition>

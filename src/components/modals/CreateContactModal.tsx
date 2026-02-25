@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Edit } from 'lucide-react';
+import type { Contact } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 
 const contactSchema = z.object({
@@ -23,51 +24,76 @@ const contactSchema = z.object({
   score: z.coerce.number().int().min(0, 'Min 0').max(100, 'Max 100').optional().or(z.literal('')),
 });
 
-type ContactFormData = z.infer<typeof contactSchema>;
+export type ContactFormData = z.infer<typeof contactSchema>;
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: ContactFormData) => void;
+  initialData?: Contact | null;
 }
 
-const CreateContactModal: React.FC<Props> = ({ open, onClose, onSubmit }) => {
+const ContactFormModal: React.FC<Props> = ({ open, onClose, onSubmit, initialData }) => {
+  const isEdit = !!initialData;
   const { toast } = useToast();
-  const { register, handleSubmit, setValue, formState: { errors }, reset } = useForm<ContactFormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: { score: 50 },
   });
 
+  useEffect(() => {
+    if (open && initialData) {
+      reset({
+        name: initialData.name,
+        type: initialData.type,
+        phone: initialData.phone,
+        email: initialData.email || '',
+        budget: initialData.budget ?? '',
+        exigences: initialData.exigences || '',
+        notes: initialData.notes || '',
+        score: initialData.score,
+      });
+    } else if (open && !initialData) {
+      reset({ score: 50 });
+    }
+  }, [open, initialData, reset]);
+
   const onValid = (data: ContactFormData) => {
     onSubmit(data);
-    toast({ title: 'Contact créé', description: `"${data.name}" a été ajouté avec succès.` });
+    toast({
+      title: isEdit ? 'Contact modifié' : 'Contact créé',
+      description: `"${data.name}" a été ${isEdit ? 'mis à jour' : 'ajouté'} avec succès.`,
+    });
     reset();
     onClose();
   };
+
+  const watchedType = watch('type');
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <UserPlus className="h-5 w-5 text-primary" /> Nouveau contact
+            {isEdit ? <Edit className="h-5 w-5 text-primary" /> : <UserPlus className="h-5 w-5 text-primary" />}
+            {isEdit ? 'Modifier le contact' : 'Nouveau contact'}
           </DialogTitle>
-          <DialogDescription>Ajoutez un nouveau contact à votre CRM.</DialogDescription>
+          <DialogDescription>
+            {isEdit ? 'Modifiez les informations du contact.' : 'Ajoutez un nouveau contact à votre CRM.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onValid)} className="space-y-4 mt-2">
-          {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="c-name">Nom complet *</Label>
             <Input id="c-name" placeholder="Ex: Mohammed El Fassi" {...register('name')} />
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
 
-          {/* Type + Score */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Type *</Label>
-              <Select onValueChange={(v) => setValue('type', v as any)} defaultValue="">
+              <Select onValueChange={(v) => setValue('type', v as any)} value={watchedType || ''}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                 <SelectContent>
                   {['Acquéreur', 'Vendeur', 'Locataire', 'Propriétaire'].map(t => (
@@ -84,7 +110,6 @@ const CreateContactModal: React.FC<Props> = ({ open, onClose, onSubmit }) => {
             </div>
           </div>
 
-          {/* Phone + Email */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="c-phone">Téléphone *</Label>
@@ -98,31 +123,27 @@ const CreateContactModal: React.FC<Props> = ({ open, onClose, onSubmit }) => {
             </div>
           </div>
 
-          {/* Budget */}
           <div className="space-y-1.5">
             <Label htmlFor="c-budget">Budget (DH)</Label>
             <Input id="c-budget" type="number" placeholder="2 000 000" {...register('budget')} />
             {errors.budget && <p className="text-xs text-destructive">{errors.budget.message}</p>}
           </div>
 
-          {/* Exigences */}
           <div className="space-y-1.5">
             <Label htmlFor="c-exigences">Exigences / Critères</Label>
             <Textarea id="c-exigences" placeholder="Appartement vue mer, 3 chambres minimum..." rows={2} {...register('exigences')} />
             {errors.exigences && <p className="text-xs text-destructive">{errors.exigences.message}</p>}
           </div>
 
-          {/* Notes */}
           <div className="space-y-1.5">
             <Label htmlFor="c-notes">Notes</Label>
             <Textarea id="c-notes" placeholder="Notes internes..." rows={2} {...register('notes')} />
             {errors.notes && <p className="text-xs text-destructive">{errors.notes.message}</p>}
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={() => { reset(); onClose(); }}>Annuler</Button>
-            <Button type="submit">Créer le contact</Button>
+            <Button type="submit">{isEdit ? 'Enregistrer' : 'Créer le contact'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -130,4 +151,4 @@ const CreateContactModal: React.FC<Props> = ({ open, onClose, onSubmit }) => {
   );
 };
 
-export default CreateContactModal;
+export default ContactFormModal;
