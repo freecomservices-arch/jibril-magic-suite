@@ -71,6 +71,7 @@ export const mockProperties: Property[] = [
     city: 'Agadir', quartier: 'Founty', address: 'Résidence Les Palmiers, Founty',
     description: 'Magnifique appartement avec vue panoramique sur l\'océan. Finitions haut de gamme, cuisine équipée, 2 terrasses.',
     status: 'Disponible', mandat: 'Exclusif', agentId: '2', photos: [], createdAt: '2026-01-15',
+    gps: { lat: 30.4278, lng: -9.6137 },
   },
   {
     id: 'p2', title: 'Villa Moderne Marina', type: 'Villa', transaction: 'Vente',
@@ -78,18 +79,21 @@ export const mockProperties: Property[] = [
     city: 'Agadir', quartier: 'Marina', address: 'Marina d\'Agadir, Lot 45',
     description: 'Villa contemporaine dans le quartier prisé de la Marina. Piscine privée, jardin paysager, garage double.',
     status: 'Disponible', mandat: 'Exclusif', agentId: '3', photos: [], createdAt: '2026-01-20',
+    gps: { lat: 30.4195, lng: -9.6058 },
   },
   {
     id: 'p3', title: 'Local Commercial Talborjt', type: 'Local Commercial', transaction: 'Location',
     price: 15000, surface: 85, city: 'Agadir', quartier: 'Talborjt', address: 'Av. Hassan II, Talborjt',
     description: 'Local commercial idéalement situé sur l\'avenue principale. Grande vitrine, excellent flux piéton.',
     status: 'Disponible', mandat: 'Simple', agentId: '4', photos: [], createdAt: '2026-02-01',
+    gps: { lat: 30.4315, lng: -9.5983 },
   },
   {
     id: 'p4', title: 'Terrain Constructible Taghazout', type: 'Terrain', transaction: 'Vente',
     price: 3500000, surface: 1200, city: 'Taghazout', quartier: 'Taghazout', address: 'Zone touristique Taghazout Bay',
     description: 'Terrain avec vue sur mer, idéal pour projet touristique ou résidentiel de standing.',
     status: 'Réservé', mandat: 'Semi-exclusif', agentId: '2', photos: [], createdAt: '2026-02-05',
+    gps: { lat: 30.5445, lng: -9.7085 },
   },
   {
     id: 'p5', title: 'Appartement Haut Founty', type: 'Appartement', transaction: 'Location',
@@ -97,6 +101,7 @@ export const mockProperties: Property[] = [
     city: 'Agadir', quartier: 'Haut Founty', address: 'Résidence Al Baraka, Haut Founty',
     description: 'Appartement meublé et équipé, parfait pour expatriés. Proche des commodités.',
     status: 'Loué', mandat: 'Simple', agentId: '5', photos: [], createdAt: '2026-02-10',
+    gps: { lat: 30.4350, lng: -9.6200 },
   },
   {
     id: 'p6', title: 'Riad Traditionnel Charaf', type: 'Riad', transaction: 'Vente',
@@ -104,6 +109,7 @@ export const mockProperties: Property[] = [
     city: 'Agadir', quartier: 'Charaf', address: 'Quartier Charaf, Agadir',
     description: 'Riad rénové avec patio central, fontaine, zellige authentique. Potentiel maison d\'hôtes.',
     status: 'Disponible', mandat: 'Exclusif', agentId: '3', photos: [], createdAt: '2026-02-12',
+    gps: { lat: 30.4180, lng: -9.5870 },
   },
 ];
 
