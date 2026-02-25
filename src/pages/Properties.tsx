@@ -192,6 +192,7 @@ const Properties: React.FC = () => {
         </div>
       ) : (
         <EmptyState
+          variant="property"
           icon={Building2}
           title="Aucun bien trouvé"
           description="Aucun bien ne correspond à vos critères de recherche. Essayez de modifier vos filtres ou ajoutez un nouveau bien."
