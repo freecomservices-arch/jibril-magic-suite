@@ -95,7 +95,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="flex h-screen bg-background-secondary overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ${sidebarOpen ? 'w-60' : 'w-16'}`}>
+      <aside className={`hidden lg:flex flex-col border-r border-sidebar-border/50 transition-all duration-300 backdrop-blur-xl bg-sidebar/80 ${sidebarOpen ? 'w-60' : 'w-16'}`}>
         <SidebarContent />
       </aside>
 
@@ -103,7 +103,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border shadow-xl">
+          <aside className="absolute left-0 top-0 h-full w-64 backdrop-blur-xl bg-sidebar/85 border-r border-sidebar-border/50 shadow-xl">
             <SidebarContent />
           </aside>
         </div>
@@ -112,7 +112,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Main Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 lg:px-6">
+        <header className="flex items-center justify-between border-b border-border/50 backdrop-blur-xl bg-card/80 px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => { if (window.innerWidth < 1024) setMobileOpen(!mobileOpen); else setSidebarOpen(!sidebarOpen); }}
@@ -149,13 +149,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 top-12 z-50 w-80 rounded-lg border border-border bg-card shadow-xl animate-scale-in">
-                  <div className="border-b border-border px-4 py-3">
+                <div className="absolute right-0 top-12 z-50 w-80 rounded-lg border border-border/50 backdrop-blur-xl bg-card/90 modal-shadow animate-scale-in">
+                  <div className="border-b border-border/50 px-4 py-3">
                     <h3 className="font-heading text-sm font-semibold">Notifications</h3>
                   </div>
                   <div className="max-h-72 overflow-y-auto">
                     {mockNotifications.map(n => (
-                      <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-border/50 last:border-0 ${!n.read ? 'bg-primary/5' : ''}`}>
+                      <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-border/30 last:border-0 ${!n.read ? 'bg-primary/5' : ''}`}>
                         <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
                           n.type === 'success' ? 'bg-success' : n.type === 'warning' ? 'bg-warning' : n.type === 'urgent' ? 'bg-destructive' : 'bg-info'
                         }`} />
@@ -180,8 +180,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
               </button>
               {profileOpen && (
-                <div className="absolute right-0 top-12 z-50 w-56 rounded-lg border border-border bg-card shadow-xl animate-scale-in">
-                  <div className="px-4 py-3 border-b border-border">
+                <div className="absolute right-0 top-12 z-50 w-56 rounded-lg border border-border/50 backdrop-blur-xl bg-card/90 modal-shadow animate-scale-in">
+                  <div className="px-4 py-3 border-b border-border/50">
                     <p className="text-sm font-medium text-card-foreground">{user?.name}</p>
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
