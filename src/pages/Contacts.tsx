@@ -11,6 +11,8 @@ import type { Contact } from '@/data/mockData';
 import AvatarInitials from '@/components/AvatarInitials';
 import EmptyState from '@/components/EmptyState';
 import ContactFormModal from '@/components/modals/CreateContactModal';
+import { ContactRowSkeleton, StatCardSkeleton, usePageLoading } from '@/components/Skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const typeColors: Record<string, string> = {
   'Acquéreur': 'bg-primary/15 text-primary',
@@ -76,6 +78,7 @@ const ContactRow: React.FC<{ contact: Contact; onEdit: () => void; onDelete: () 
 
 const Contacts: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>(mockContacts);
+  const loading = usePageLoading(600);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -105,6 +108,22 @@ const Contacts: React.FC = () => {
 
   const openCreate = () => { setEditingContact(null); setModalOpen(true); };
   const openEdit = (c: Contact) => { setEditingContact(c); setModalOpen(true); };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="space-y-5">
+          <div className="flex justify-between"><div><Skeleton className="h-7 w-40" /><Skeleton className="h-4 w-56 mt-2" /></div><Skeleton className="h-10 w-40 rounded-lg" /></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)}
+          </div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => <ContactRowSkeleton key={i} />)}
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>

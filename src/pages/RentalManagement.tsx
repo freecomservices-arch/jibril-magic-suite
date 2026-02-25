@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { Home, FileText, DollarSign, AlertTriangle, CheckCircle2, Plus, Receipt, TrendingDown, TrendingUp, Edit, Trash2, Phone, Mail, Search, Filter, X, Eye, Download } from 'lucide-react';
 import StatCard from '@/components/StatCard';
+import { StatCardSkeleton, BailRowSkeleton, usePageLoading } from '@/components/Skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 import AvatarInitials from '@/components/AvatarInitials';
 import { formatMAD } from '@/data/mockData';
 import CreateBailModal, { type Bail, type BailFormData } from '@/components/modals/CreateBailModal';
@@ -61,6 +63,7 @@ const statutColors: Record<string, string> = {
 
 const RentalManagement: React.FC = () => {
   const [baux, setBaux] = useState<Bail[]>(initialBaux);
+  const loading = usePageLoading(600);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBail, setEditingBail] = useState<Bail | null>(null);
   const [deletingBail, setDeletingBail] = useState<Bail | null>(null);
@@ -112,6 +115,23 @@ const RentalManagement: React.FC = () => {
     }));
     toast.success('Statut de paiement mis à jour');
   };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="space-y-6">
+          <div className="flex justify-between"><div><Skeleton className="h-7 w-44" /><Skeleton className="h-4 w-56 mt-2" /></div><Skeleton className="h-10 w-36 rounded-lg" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)}
+          </div>
+          <div className="rounded-lg border border-border bg-card card-shadow">
+            <div className="border-b border-border px-5 py-4"><Skeleton className="h-5 w-28" /></div>
+            {[...Array(3)].map((_, i) => <BailRowSkeleton key={i} />)}
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>

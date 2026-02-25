@@ -4,6 +4,8 @@ import StatCard from '@/components/StatCard';
 import AvatarInitials from '@/components/AvatarInitials';
 import PageTransition from '@/components/PageTransition';
 import MotionCard from '@/components/MotionCard';
+import { StatCardSkeleton, ChartSkeleton, usePageLoading } from '@/components/Skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DollarSign, Building2, Users, FileSignature, TrendingUp, Calendar,
   Phone, MessageSquare, ArrowUpRight, Clock, AlertTriangle, CheckCircle2,
@@ -48,8 +50,31 @@ const todayVisits = [
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const loading = usePageLoading(800);
   const availableProps = mockProperties.filter(p => p.status === 'Disponible').length;
   const totalCA = mockTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="space-y-6">
+          <div><Skeleton className="h-7 w-56" /><Skeleton className="h-4 w-72 mt-2" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <ChartSkeleton height={240} />
+            <ChartSkeleton height={240} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <ChartSkeleton height={200} />
+            <ChartSkeleton height={200} />
+            <ChartSkeleton height={200} />
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
