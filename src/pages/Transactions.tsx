@@ -3,6 +3,7 @@ import PageTransition from '@/components/PageTransition';
 import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight } from 'lucide-react';
 import { mockTransactions, mockProperties, mockContacts, formatMAD, Transaction } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import CreateTransactionModal from '@/components/modals/CreateTransactionModal';
 
 const saleStages = ['Offre', 'Compromis', 'Notaire', 'Signé'] as const;
 const locationStages = ['Visite', 'Bail', 'État des lieux', 'Quittances'] as const;
@@ -150,6 +151,7 @@ const StageProgress: React.FC<{ stages: readonly string[]; transactions: Transac
 const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const draggedTxId = useRef<string | null>(null);
 
   const totalCommissions = transactions.reduce((s, t) => s + t.commission, 0);
@@ -200,7 +202,7 @@ const Transactions: React.FC = () => {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">{transactions.length} transactions en cours · Glissez les cartes entre les colonnes</p>
           </div>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
             <Plus className="h-4 w-4" /> Nouvelle transaction
           </button>
         </div>
@@ -278,6 +280,26 @@ const Transactions: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <CreateTransactionModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={(data) => {
+          const newTx: Transaction = {
+            id: `t${Date.now()}`,
+            propertyId: data.propertyId,
+            contactId: data.contactId,
+            type: data.type,
+            stage: data.stage as Transaction['stage'],
+            amount: data.amount,
+            commission: data.commission,
+            agentId: '2',
+            createdAt: new Date().toISOString().split('T')[0],
+            documents: [],
+          };
+          setTransactions(prev => [...prev, newTx]);
+        }}
+      />
     </PageTransition>
   );
 };

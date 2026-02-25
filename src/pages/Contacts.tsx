@@ -8,6 +8,7 @@ import { mockContacts, formatMAD } from '@/data/mockData';
 import type { Contact } from '@/data/mockData';
 import AvatarInitials from '@/components/AvatarInitials';
 import EmptyState from '@/components/EmptyState';
+import CreateContactModal from '@/components/modals/CreateContactModal';
 
 const typeColors: Record<string, string> = {
   'Acquéreur': 'bg-primary/15 text-primary',
@@ -68,6 +69,7 @@ const ContactRow: React.FC<{ contact: Contact }> = ({ contact }) => (
 const Contacts: React.FC = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
 
   const filtered = mockContacts.filter(c => {
     if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -93,7 +95,7 @@ const Contacts: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{stats.total} contacts • {stats.acquereurs} acquéreurs • {stats.vendeurs} vendeurs</p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
           <UserPlus className="h-4 w-4" /> Nouveau contact
         </button>
       </div>
@@ -147,6 +149,12 @@ const Contacts: React.FC = () => {
         />
       )}
     </div>
+
+    <CreateContactModal
+      open={createOpen}
+      onClose={() => setCreateOpen(false)}
+      onSubmit={(data) => { console.log('New contact:', data); }}
+    />
     </PageTransition>
   );
 };
