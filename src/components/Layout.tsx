@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
@@ -6,7 +6,7 @@ import AvatarInitials from '@/components/AvatarInitials';
 import {
   LayoutDashboard, Building2, Users, FileText, Home, PenTool,
   Bot, Globe, MessageSquare, BarChart3, Settings, Shield,
-  Bell, Search, LogOut, Menu, X, ChevronDown
+  Bell, Search, LogOut, Menu, X, ChevronDown, Mic, MicOff, Check
 } from 'lucide-react';
 import { mockNotifications } from '@/data/mockData';
 
@@ -27,6 +27,8 @@ const adminItems = [
   { path: '/administration', label: 'Administration', icon: Shield },
 ];
 
+type VoiceState = 'idle' | 'listening' | 'confirmed';
+
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
@@ -34,7 +36,49 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const recognitionRef = useRef<any>(null);
+  const confirmedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const unreadCount = mockNotifications.filter(n => !n.read).length;
+
+  const startVoice = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onstart = () => setVoiceState('listening');
+    recognition.onresult = (e: any) => {
+      const transcript = Array.from(e.results)
+        .map((r: any) => r[0].transcript)
+        .join('');
+      setSearchValue(transcript);
+    };
+    recognition.onend = () => {
+      setVoiceState('confirmed');
+      if (confirmedTimerRef.current) clearTimeout(confirmedTimerRef.current);
+      confirmedTimerRef.current = setTimeout(() => setVoiceState('idle'), 2000);
+    };
+    recognition.onerror = () => setVoiceState('idle');
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, []);
+
+  const stopVoice = useCallback(() => {
+    recognitionRef.current?.stop();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+      if (confirmedTimerRef.current) clearTimeout(confirmedTimerRef.current);
+    };
+  }, []);
 
   const allItems = [...navItems, ...(isAdmin ? adminItems : []), { path: '/parametres', label: 'Paramètres', icon: Settings }];
 
@@ -121,14 +165,69 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
-            {/* Search */}
-            <div className="hidden md:flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 w-72">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            {/* Search with Voice */}
+            <div className={`hidden md:flex items-center gap-2 rounded-lg border px-3 py-2 w-80 transition-all duration-300 ${
+              voiceState === 'listening'
+                ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                : voiceState === 'confirmed'
+                ? 'border-success bg-success/5'
+                : 'border-border bg-background'
+            }`}>
+              <Search className={`h-4 w-4 shrink-0 transition-colors ${
+                voiceState === 'listening' ? 'text-primary' : voiceState === 'confirmed' ? 'text-success' : 'text-muted-foreground'
+              }`} />
               <input
                 type="text"
-                placeholder="Rechercher... (Ctrl+K)"
+                value={searchValue}
+                onChange={e => setSearchValue(e.target.value)}
+                placeholder="Rechercher..."
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
               />
+
+              {/* Voice button */}
+              <button
+                onClick={voiceState === 'listening' ? stopVoice : startVoice}
+                className={`relative shrink-0 rounded-md p-1.5 transition-all ${
+                  voiceState === 'listening'
+                    ? 'bg-primary text-primary-foreground'
+                    : voiceState === 'confirmed'
+                    ? 'bg-success/15 text-success'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+                title="Recherche vocale"
+              >
+                {voiceState === 'listening' ? (
+                  <>
+                    <Mic className="h-3.5 w-3.5 relative z-10" />
+                    <span className="absolute inset-0 rounded-md bg-primary animate-ping opacity-30" />
+                  </>
+                ) : voiceState === 'confirmed' ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Mic className="h-3.5 w-3.5" />
+                )}
+              </button>
+
+              {/* Sound wave animation */}
+              {voiceState === 'listening' && (
+                <div className="flex items-center gap-[3px] shrink-0 ml-1">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <span
+                      key={i}
+                      className="w-[3px] rounded-full bg-primary animate-bounce"
+                      style={{
+                        height: `${10 + Math.random() * 8}px`,
+                        animationDelay: `${i * 100}ms`,
+                        animationDuration: '0.6s',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <kbd className="hidden lg:inline-flex h-5 items-center rounded border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground shrink-0">
+                ⌘K
+              </kbd>
             </div>
           </div>
 
