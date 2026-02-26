@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, X, GripVertical, FileText, Image, File, CheckCircle2 } from 'lucide-react';
+import { Upload, X, GripVertical, FileText, Image, File, CheckCircle2, AlertCircle, Trash2, Video } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 
 interface UploadedFile {
   id: string;
@@ -10,19 +11,31 @@ interface UploadedFile {
   preview?: string;
   progress: number;
   status: 'uploading' | 'done' | 'error';
+  errorMessage?: string;
 }
 
 interface FileUploadProps {
   accept?: string;
   multiple?: boolean;
   maxFiles?: number;
+  maxSizeMB?: number;
   title?: string;
   description?: string;
   onFilesChange?: (files: UploadedFile[]) => void;
 }
 
+const ACCEPTED_TYPES = [
+  'image/jpeg', 'image/jpg', 'image/png',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'video/mp4', 'video/quicktime',
+];
+
+const ACCEPTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf', '.docx', '.mp4', '.mov'];
+
 const getFileIcon = (type: string) => {
   if (type.startsWith('image/')) return Image;
+  if (type.startsWith('video/')) return Video;
   if (type === 'application/pdf') return FileText;
   return File;
 };
@@ -33,18 +46,59 @@ const formatSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const compressImage = (file: globalThis.File, maxWidth = 1920, quality = 0.8): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => resolve(blob || file),
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+};
+
+const isValidType = (file: globalThis.File) => {
+  if (ACCEPTED_TYPES.includes(file.type)) return true;
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+  return ACCEPTED_EXTENSIONS.includes(ext);
+};
+
 const FileUpload: React.FC<FileUploadProps> = ({
-  accept = 'image/*,.pdf,.docx',
+  accept = '.jpg,.jpeg,.png,.pdf,.docx,.mp4,.mov',
   multiple = true,
   maxFiles = 20,
+  maxSizeMB = 5,
   title = 'Glissez vos fichiers ici',
-  description = 'ou cliquez pour parcourir • JPG, PNG, PDF, DOCX',
+  description = `ou cliquez pour parcourir • JPG, PNG, PDF, DOCX, MP4 • Max ${5}MB`,
   onFilesChange,
 }) => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const globalProgress = files.length > 0
+    ? Math.round(files.reduce((s, f) => s + f.progress, 0) / files.length)
+    : 0;
 
   const simulateUpload = useCallback((file: UploadedFile) => {
     let progress = 0;
@@ -64,22 +118,56 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }, 300 + Math.random() * 400);
   }, [onFilesChange]);
 
-  const addFiles = useCallback((fileList: FileList) => {
-    const newFiles: UploadedFile[] = Array.from(fileList).slice(0, maxFiles - files.length).map(f => {
+  const addFiles = useCallback(async (fileList: FileList) => {
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    const remaining = maxFiles - files.length;
+    if (remaining <= 0) {
+      toast.error(`Maximum ${maxFiles} fichiers atteint`);
+      return;
+    }
+
+    const rawFiles = Array.from(fileList).slice(0, remaining);
+    const newFiles: UploadedFile[] = [];
+
+    for (const f of rawFiles) {
+      // Validate type
+      if (!isValidType(f)) {
+        toast.error(`"${f.name}" : type non accepté. Formats : JPG, PNG, PDF, DOCX, MP4`);
+        continue;
+      }
+      // Validate size
+      if (f.size > maxSizeBytes) {
+        toast.error(`"${f.name}" dépasse ${maxSizeMB}MB (${formatSize(f.size)})`);
+        continue;
+      }
+
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      return {
+      let preview: string | undefined;
+
+      // Compress images
+      if (f.type.startsWith('image/')) {
+        const compressed = await compressImage(f);
+        preview = URL.createObjectURL(compressed);
+      } else if (f.type.startsWith('video/')) {
+        preview = URL.createObjectURL(f);
+      }
+
+      newFiles.push({
         id,
         name: f.name,
         size: f.size,
         type: f.type,
-        preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : undefined,
+        preview,
         progress: 0,
-        status: 'uploading' as const,
-      };
-    });
-    setFiles(prev => [...prev, ...newFiles]);
-    newFiles.forEach(simulateUpload);
-  }, [files.length, maxFiles, simulateUpload]);
+        status: 'uploading',
+      });
+    }
+
+    if (newFiles.length > 0) {
+      setFiles(prev => [...prev, ...newFiles]);
+      newFiles.forEach(simulateUpload);
+    }
+  }, [files.length, maxFiles, maxSizeMB, simulateUpload]);
 
   const removeFile = useCallback((id: string) => {
     setFiles(prev => {
@@ -90,6 +178,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
       return updated;
     });
   }, [onFilesChange]);
+
+  const removeAll = useCallback(() => {
+    files.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
+    setFiles([]);
+    onFilesChange?.([]);
+  }, [files, onFilesChange]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -148,11 +242,33 @@ const FileUpload: React.FC<FileUploadProps> = ({
         )}
       </div>
 
+      {/* Global progress + clear all */}
+      {files.length > 0 && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>Progression globale</span>
+              <span className="font-semibold text-foreground">{globalProgress}%</span>
+            </div>
+            <Progress value={globalProgress} className="h-2" />
+          </div>
+          {files.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); removeAll(); }}
+              className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors min-h-[44px] active:scale-95"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Tout supprimer
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Preview Grid */}
       {files.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {files.map((file, idx) => {
             const FileIcon = getFileIcon(file.type);
+            const isVideo = file.type.startsWith('video/');
             return (
               <div
                 key={file.id}
@@ -166,7 +282,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
               >
                 {/* Thumbnail */}
                 <div className="aspect-square relative bg-muted/30 flex items-center justify-center overflow-hidden">
-                  {file.preview ? (
+                  {isVideo && file.preview ? (
+                    <video
+                      src={file.preview}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                      onMouseEnter={e => (e.target as HTMLVideoElement).play().catch(() => {})}
+                      onMouseLeave={e => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
+                    />
+                  ) : file.preview ? (
                     <img src={file.preview} alt={file.name} className="h-full w-full object-cover" />
                   ) : (
                     <FileIcon className="h-8 w-8 text-muted-foreground/40" />
@@ -180,7 +305,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   {/* Remove button */}
                   <button
                     onClick={e => { e.stopPropagation(); removeFile(file.id); }}
-                    className="absolute top-1.5 right-1.5 rounded-full bg-destructive/90 p-1 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                    className="absolute top-1.5 right-1.5 rounded-full bg-destructive/90 p-1 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive min-h-[28px] min-w-[28px] flex items-center justify-center"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -192,9 +317,21 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     </span>
                   )}
 
+                  {/* Video badge */}
+                  {isVideo && (
+                    <span className="absolute top-1.5 left-1.5 rounded-md bg-foreground/70 px-1.5 py-0.5 text-[9px] font-bold text-background">
+                      ▶ VIDÉO
+                    </span>
+                  )}
+
                   {/* Done indicator */}
-                  {file.status === 'done' && (
+                  {file.status === 'done' && !isVideo && (
                     <CheckCircle2 className="absolute top-1.5 left-1.5 h-4 w-4 text-success drop-shadow" />
+                  )}
+
+                  {/* Error indicator */}
+                  {file.status === 'error' && (
+                    <AlertCircle className="absolute top-1.5 left-1.5 h-4 w-4 text-destructive drop-shadow" />
                   )}
                 </div>
 
@@ -204,6 +341,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   <p className="text-[9px] text-muted-foreground">{formatSize(file.size)}</p>
                   {file.status === 'uploading' && (
                     <Progress value={file.progress} className="h-1 mt-1.5" />
+                  )}
+                  {file.errorMessage && (
+                    <p className="text-[9px] text-destructive mt-1">{file.errorMessage}</p>
                   )}
                 </div>
               </div>

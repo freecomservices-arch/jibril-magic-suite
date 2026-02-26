@@ -381,6 +381,23 @@
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
+/* Sound wave animation for voice search */
+@keyframes soundwave {
+  0% { height: 4px; }
+  100% { height: 18px; }
+}
+
+/* Mobile touch feedback */
+@media (max-width: 767px) {
+  .touch-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  button, [role="button"], a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 /* Global transition */
 * {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
