@@ -7,9 +7,10 @@ import GlobalSearch from '@/components/GlobalSearch';
 import {
   LayoutDashboard, Building2, Users, FileText, Home, PenTool,
   Bot, Globe, MessageSquare, BarChart3, Settings, Shield,
-  Bell, Search, LogOut, Menu, X, ChevronDown, Mic, MicOff, Check
+  Bell, Search, LogOut, Menu, X, ChevronDown
 } from 'lucide-react';
 import { mockNotifications } from '@/data/mockData';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,8 +29,6 @@ const adminItems = [
   { path: '/administration', label: 'Administration', icon: Shield },
 ];
 
-type VoiceState = 'idle' | 'listening' | 'confirmed';
-
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
@@ -37,12 +36,20 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
   const [commandOpen, setCommandOpen] = useState(false);
-  const [voiceState, setVoiceState] = useState<VoiceState>('idle');
-  const recognitionRef = useRef<any>(null);
-  const confirmedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const unreadCount = mockNotifications.filter(n => !n.read).length;
+
+  // Swipe to close
+  const touchStartX = useRef<number | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (diff > 80) setMobileOpen(false);  // swipe left to close
+    touchStartX.current = null;
+  }, []);
 
   // ⌘K shortcut
   useEffect(() => {
@@ -56,43 +63,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  const startVoice = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-
-    recognition.onstart = () => setVoiceState('listening');
-    recognition.onresult = (e: any) => {
-      const transcript = Array.from(e.results)
-        .map((r: any) => r[0].transcript)
-        .join('');
-      setSearchValue(transcript);
-    };
-    recognition.onend = () => {
-      setVoiceState('confirmed');
-      if (confirmedTimerRef.current) clearTimeout(confirmedTimerRef.current);
-      confirmedTimerRef.current = setTimeout(() => setVoiceState('idle'), 2000);
-    };
-    recognition.onerror = () => setVoiceState('idle');
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  }, []);
-
-  const stopVoice = useCallback(() => {
-    recognitionRef.current?.stop();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      recognitionRef.current?.abort();
-      if (confirmedTimerRef.current) clearTimeout(confirmedTimerRef.current);
-    };
-  }, []);
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const allItems = [...navItems, ...(isAdmin ? adminItems : []), { path: '/parametres', label: 'Paramètres', icon: Settings }];
 
@@ -103,7 +75,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-sm">
           JI
         </div>
-        {sidebarOpen && (
+        {(sidebarOpen || mobileOpen) && (
           <div className="animate-fade-in">
             <h1 className="font-heading text-base font-bold text-sidebar-foreground">Jibril Immo</h1>
             <p className="text-[10px] text-muted-foreground font-medium">PRO — Agadir</p>
@@ -121,7 +93,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all min-h-[44px] ${
                   isActive
                     ? 'bg-sidebar-accent text-primary'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
@@ -157,15 +129,32 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <SidebarContent />
       </aside>
 
-      {/* Mobile Sidebar Overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-64 backdrop-blur-xl bg-sidebar/85 border-r border-sidebar-border/50 shadow-xl">
-            <SidebarContent />
-          </aside>
-        </div>
-      )}
+      {/* Mobile Sidebar Overlay with animation */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-foreground/30 backdrop-blur-sm"
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute left-0 top-0 h-full w-72 backdrop-blur-xl bg-sidebar/90 border-r border-sidebar-border/50 shadow-2xl"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              <SidebarContent />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -174,7 +163,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => { if (window.innerWidth < 1024) setMobileOpen(!mobileOpen); else setSidebarOpen(!sidebarOpen); }}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -182,7 +171,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             {/* Search — opens ⌘K */}
             <button
               onClick={() => setCommandOpen(true)}
-              className="hidden md:flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 w-80 text-sm text-muted-foreground hover:border-primary/30 hover:bg-muted/30 transition-all"
+              className="hidden md:flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 w-80 text-sm text-muted-foreground hover:border-primary/30 hover:bg-muted/30 transition-all min-h-[44px]"
             >
               <Search className="h-4 w-4 shrink-0" />
               <span className="flex-1 text-left">Rechercher…</span>
@@ -195,11 +184,19 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="flex items-center gap-2">
             <ThemeSwitcher />
 
+            {/* Mobile search button */}
+            <button
+              onClick={() => setCommandOpen(true)}
+              className="md:hidden rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+
             {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-                className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
@@ -234,7 +231,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="relative">
               <button
                 onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-                className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-muted transition-colors"
+                className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-muted transition-colors min-h-[44px] active:scale-95"
               >
                 <AvatarInitials name={user?.name || 'U'} size="sm" />
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
@@ -246,10 +243,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="py-1">
-                    <NavLink to="/parametres" className="flex items-center gap-2 px-4 py-2 text-sm text-card-foreground hover:bg-muted transition-colors" onClick={() => setProfileOpen(false)}>
+                    <NavLink to="/parametres" className="flex items-center gap-2 px-4 py-2 text-sm text-card-foreground hover:bg-muted transition-colors min-h-[44px]" onClick={() => setProfileOpen(false)}>
                       <Settings className="h-4 w-4" /> Paramètres
                     </NavLink>
-                    <button onClick={logout} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors">
+                    <button onClick={logout} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-muted transition-colors min-h-[44px]">
                       <LogOut className="h-4 w-4" /> Déconnexion
                     </button>
                   </div>
