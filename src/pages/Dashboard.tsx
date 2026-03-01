@@ -14,46 +14,85 @@ import {
 import { mockProperties, mockContacts, mockTransactions, mockNotifications, formatMAD } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
-const salesData = [
-  { month: 'Sep', ventes: 3, locations: 5 },
-  { month: 'Oct', ventes: 5, locations: 4 },
-  { month: 'Nov', ventes: 4, locations: 6 },
-  { month: 'Déc', ventes: 7, locations: 3 },
-  { month: 'Jan', ventes: 6, locations: 8 },
-  { month: 'Fév', ventes: 8, locations: 5 },
-];
-
-const agentPerf = [
-  { name: 'Amin B.', ventes: 12, ca: 2400000 },
-  { name: 'Sarah I.', ventes: 9, ca: 1800000 },
-  { name: 'Khalil A.', ventes: 7, ca: 1500000 },
-  { name: 'Fatima Z.', ventes: 5, ca: 900000 },
-  { name: 'Youssef T.', ventes: 4, ca: 750000 },
-];
-
-const sourceData = [
-  { name: 'WhatsApp', value: 35 },
-  { name: 'Avito', value: 25 },
-  { name: 'Facebook', value: 20 },
-  { name: 'Direct', value: 15 },
-  { name: 'Site web', value: 5 },
-];
-
 const CHART_COLORS = ['hsl(217, 91%, 60%)', 'hsl(160, 84%, 39%)', 'hsl(38, 92%, 50%)', 'hsl(280, 67%, 51%)', 'hsl(0, 72%, 51%)'];
 
-const todayVisits = [
-  { time: '09:00', client: 'Mohammed El Fassi', bien: 'Apt Vue Mer Founty', agent: 'Amin B.' },
-  { time: '11:30', client: 'Pierre Dupont', bien: 'Villa Moderne Marina', agent: 'Sarah I.' },
-  { time: '14:00', client: 'Samira Alaoui', bien: 'Apt Haut Founty', agent: 'Fatima Z.' },
-  { time: '16:30', client: 'Ahmed Ouazzani', bien: 'Riad Charaf', agent: 'Khalil A.' },
-];
+// Derive sales data from transactions by month
+const buildSalesData = () => {
+  const months: Record<string, { ventes: number; locations: number }> = {};
+  mockTransactions.forEach(t => {
+    const d = new Date(t.createdAt);
+    const label = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!months[key]) months[key] = { ventes: 0, locations: 0 };
+    if (t.type === 'Vente') months[key].ventes++;
+    else months[key].locations++;
+  });
+  return Object.entries(months)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([key, val]) => {
+      const [y, m] = key.split('-').map(Number);
+      const label = new Date(y, m).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+      return { month: label.charAt(0).toUpperCase() + label.slice(1), ...val };
+    });
+};
+
+// Derive agent performance from transactions + contacts
+const buildAgentPerf = () => {
+  const agents: Record<string, { ventes: number; ca: number }> = {};
+  mockTransactions.forEach(t => {
+    if (!agents[t.agentId]) agents[t.agentId] = { ventes: 0, ca: 0 };
+    agents[t.agentId].ventes++;
+    agents[t.agentId].ca += t.amount;
+  });
+  return Object.entries(agents)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.ca - a.ca)
+    .slice(0, 5);
+};
+
+// Derive source data from contact types
+const buildSourceData = () => {
+  const sources: Record<string, number> = {};
+  mockContacts.forEach(c => {
+    sources[c.type] = (sources[c.type] || 0) + 1;
+  });
+  const total = mockContacts.length || 1;
+  return Object.entries(sources).map(([name, count]) => ({
+    name,
+    value: Math.round((count / total) * 100),
+  }));
+};
+
+// Build today's visits from recent contacts + properties
+const buildTodayVisits = () => {
+  const times = ['09:00', '10:30', '11:30', '14:00', '15:30', '16:30'];
+  const agents = ['Amin B.', 'Sarah I.', 'Fatima Z.', 'Khalil A.'];
+  return mockContacts
+    .filter(c => c.type === 'Acquéreur')
+    .slice(0, 4)
+    .map((c, i) => ({
+      time: times[i] || '17:00',
+      client: c.name,
+      bien: mockProperties[i]?.title || 'Bien immobilier',
+      agent: agents[i % agents.length],
+    }));
+};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const loading = usePageLoading(800);
   const availableProps = mockProperties.filter(p => p.status === 'Disponible').length;
   const totalCA = mockTransactions.reduce((sum, t) => sum + t.amount, 0);
-
+  const salesData = React.useMemo(buildSalesData, []);
+  const sourceData = React.useMemo(buildSourceData, []);
+  const agentPerf = React.useMemo(buildAgentPerf, []);
+  const todayVisits = React.useMemo(buildTodayVisits, []);
+  const newContactsThisWeek = mockContacts.filter(c => {
+    const d = new Date(c.createdAt);
+    const now = new Date();
+    return (now.getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
+  }).length;
   if (loading) {
     return (
       <PageTransition>
@@ -94,7 +133,7 @@ const Dashboard: React.FC = () => {
           {[
             { title: "CA Mensuel", value: formatMAD(totalCA), icon: DollarSign, variant: "primary" as const, trend: { value: 12, positive: true }, subtitle: "Février 2026" },
             { title: "Biens Actifs", value: availableProps, icon: Building2, variant: "accent" as const, trend: { value: 8, positive: true }, subtitle: `${mockProperties.length} total` },
-            { title: "Contacts", value: mockContacts.length, icon: Users, variant: "default" as const, trend: { value: 15, positive: true }, subtitle: "3 nouveaux cette semaine" },
+            { title: "Contacts", value: mockContacts.length, icon: Users, variant: "default" as const, trend: { value: 15, positive: true }, subtitle: `${newContactsThisWeek} nouveaux cette semaine` },
             { title: "Mandats Signés", value: mockTransactions.length, icon: FileSignature, variant: "warning" as const, trend: { value: 5, positive: true }, subtitle: "Ce mois" },
           ].map((card, i) => (
             <MotionCard key={card.title} index={i}>
