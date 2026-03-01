@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
-  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit, Trash2
+  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit, Trash2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -76,6 +76,8 @@ const ContactRow: React.FC<{ contact: Contact; onEdit: () => void; onDelete: () 
   </div>
 );
 
+const CONTACTS_PER_PAGE = 15;
+
 const Contacts: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>(mockContacts);
   const loading = usePageLoading(600);
@@ -84,6 +86,7 @@ const Contacts: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const confirmDelete = () => {
     if (deletingContact) {
@@ -98,6 +101,15 @@ const Contacts: React.FC = () => {
     if (typeFilter && c.type !== typeFilter) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filtered.length / CONTACTS_PER_PAGE);
+  const paginatedContacts = useMemo(() => {
+    const start = (currentPage - 1) * CONTACTS_PER_PAGE;
+    return filtered.slice(start, start + CONTACTS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  // Reset page when filters change
+  React.useEffect(() => { setCurrentPage(1); }, [search, typeFilter]);
 
   const stats = {
     total: contacts.length,
@@ -170,9 +182,42 @@ const Contacts: React.FC = () => {
       </div>
 
       {filtered.length > 0 ? (
-        <div className="space-y-3">
-          {filtered.map(c => <ContactRow key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeletingContact(c)} />)}
-        </div>
+        <>
+          <div className="space-y-3">
+            {paginatedContacts.map(c => <ContactRow key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeletingContact(c)} />)}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 card-shadow">
+              <p className="text-sm text-muted-foreground">
+                {(currentPage - 1) * CONTACTS_PER_PAGE + 1}–{Math.min(currentPage * CONTACTS_PER_PAGE, filtered.length)} sur {filtered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .reduce<(number | string)[]>((acc, p, i, arr) => {
+                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    typeof p === 'string' ? (
+                      <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                    ) : (
+                      <button key={p} onClick={() => setCurrentPage(p)} className={`min-w-[32px] rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${p === currentPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
+                        {p}
+                      </button>
+                    )
+                  )}
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState variant="contacts" icon={Users} title="Aucun contact trouvé" description="Ajoutez votre premier contact." actionLabel="Ajouter un contact" onAction={openCreate} />
       )}

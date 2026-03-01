@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
-  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone, Map, Trash2
+  Eye, Edit, Share2, FileText, MessageSquare, ChevronDown, Home, Grid3X3, List, Image, Camera, LayoutList, Phone, Map, Trash2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -167,6 +168,8 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
   );
 };
 
+const PROPERTIES_PER_PAGE = 12;
+
 const Properties: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>(mockProperties);
   const loading = usePageLoading(700);
@@ -180,6 +183,7 @@ const Properties: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const confirmDelete = () => {
     if (deletingProperty) {
@@ -196,6 +200,14 @@ const Properties: React.FC = () => {
     if (statusFilter && p.status !== statusFilter) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filtered.length / PROPERTIES_PER_PAGE);
+  const paginatedProperties = useMemo(() => {
+    const start = (currentPage - 1) * PROPERTIES_PER_PAGE;
+    return filtered.slice(start, start + PROPERTIES_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  React.useEffect(() => { setCurrentPage(1); }, [search, cityFilter, typeFilter, statusFilter]);
 
   const openGallery = () => { setLightboxIndex(0); setLightboxOpen(true); };
   const openCreate = () => { setEditingProperty(null); setModalOpen(true); };
@@ -259,13 +271,46 @@ const Properties: React.FC = () => {
       {viewMode === 'map' ? (
         <PropertyMap properties={filtered} />
       ) : filtered.length > 0 ? (
-        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}>
-          {filtered.map((p, i) => (
-            viewMode === 'detail'
-              ? <PropertyListRow key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} onDelete={() => setDeletingProperty(p)} />
-              : <PropertyCard key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} onDelete={() => setDeletingProperty(p)} />
-          ))}
-        </div>
+        <>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}>
+            {paginatedProperties.map((p) => (
+              viewMode === 'detail'
+                ? <PropertyListRow key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} onDelete={() => setDeletingProperty(p)} />
+                : <PropertyCard key={p.id} property={p} onOpenGallery={openGallery} onEdit={() => openEdit(p)} onDelete={() => setDeletingProperty(p)} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 card-shadow">
+              <p className="text-sm text-muted-foreground">
+                {(currentPage - 1) * PROPERTIES_PER_PAGE + 1}–{Math.min(currentPage * PROPERTIES_PER_PAGE, filtered.length)} sur {filtered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .reduce<(number | string)[]>((acc, p, i, arr) => {
+                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    typeof p === 'string' ? (
+                      <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                    ) : (
+                      <button key={p} onClick={() => setCurrentPage(p)} className={`min-w-[32px] rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${p === currentPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
+                        {p}
+                      </button>
+                    )
+                  )}
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState variant="property" icon={Building2} title="Aucun bien trouvé" description="Aucun bien ne correspond à vos critères de recherche." actionLabel="Ajouter un bien" onAction={openCreate} />
       )}
