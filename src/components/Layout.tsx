@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { mockNotifications } from '@/data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
+import logoJibril from '@/assets/logo-jibril.png';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -72,9 +73,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-sm">
-          JI
-        </div>
+        <img src={logoJibril} alt="Jibril Immo" className="h-9 w-auto shrink-0" />
         {(sidebarOpen || mobileOpen) && (
           <div className="animate-fade-in">
             <h1 className="font-heading text-base font-bold text-sidebar-foreground">Jibril Immo</h1>

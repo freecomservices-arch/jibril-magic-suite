@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Building2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import loginBg from '@/assets/login-bg.jpg';
+import logoJibril from '@/assets/logo-jibril.png';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -27,9 +28,7 @@ const Login: React.FC = () => {
         <div className="relative z-10 flex flex-col justify-end p-12">
           <div className="max-w-lg">
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-heading font-bold text-lg">
-                JI
-              </div>
+              <img src={logoJibril} alt="Jibril Immo" className="h-14 w-auto" />
               <div>
                 <h1 className="font-heading text-2xl font-bold text-[hsl(220,14%,91%)]">Jibril Immo Pro</h1>
                 <p className="text-sm text-[hsl(220,14%,70%)]">Suite Immobilière — Agadir</p>
@@ -56,9 +55,7 @@ const Login: React.FC = () => {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold">
-              JI
-            </div>
+            <img src={logoJibril} alt="Jibril Immo" className="h-10 w-auto" />
             <h1 className="font-heading text-xl font-bold text-foreground">Jibril Immo Pro</h1>
           </div>
 
