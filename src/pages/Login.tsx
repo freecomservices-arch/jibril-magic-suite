@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Building2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import loginBg from '@/assets/login-bg.jpg';
+import logoJibril from '@/assets/logo-jibril.png';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
