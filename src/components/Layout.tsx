@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { mockNotifications } from '@/data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
+import logoJibril from '@/assets/logo-jibril.png';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
