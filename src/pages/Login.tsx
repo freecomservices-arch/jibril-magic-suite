@@ -56,7 +56,7 @@ const Login: React.FC = () => {
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <img src={logoJibril} alt="Jibril Immo" className="h-10 w-auto" />
-            <h1 className="font-heading text-xl font-bold text-foreground">Jibril Immo Pro</h1>
+            <h1 className="font-heading text-xl font-bold text-foreground">JIBRIL Immo Cloud</h1>
           </div>
 
           <div className="mb-8">
