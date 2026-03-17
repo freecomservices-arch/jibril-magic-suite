@@ -77,7 +77,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {(sidebarOpen || mobileOpen) && (
           <div className="animate-fade-in">
             <h1 className="font-heading text-base font-bold text-sidebar-foreground">Jibril Immo</h1>
-            <p className="text-[10px] text-muted-foreground font-medium">PRO — Agadir</p>
+            <p className="text-[10px] text-muted-foreground font-medium"><p className="text-[10px] text-muted-foreground font-medium">PRO — Maroc</p></p>
           </div>
         )}
       </div>

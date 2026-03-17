@@ -23,7 +23,7 @@ const Login: React.FC = () => {
     <div className="flex min-h-screen">
       {/* Left: Image */}
       <div className="hidden lg:flex lg:w-3/5 relative overflow-hidden">
-        <img src={loginBg} alt="Immobilier Agadir" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={loginBg} alt="Immobilier Maroc" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[hsl(228,22%,13%)] via-[hsl(228,22%,13%,0.7)] to-transparent" />
         <div className="relative z-10 flex flex-col justify-end p-12">
           <div className="max-w-lg">
@@ -31,7 +31,7 @@ const Login: React.FC = () => {
               <img src={logoJibril} alt="Jibril Immo" className="h-14 w-auto" />
               <div>
                 <h1 className="font-heading text-2xl font-bold text-[hsl(220,14%,91%)]">Jibril Immo Pro</h1>
-                <p className="text-sm text-[hsl(220,14%,70%)]">Suite Immobilière — Agadir</p>
+                <p className="text-sm text-[hsl(220,14%,70%)]"><p className="text-sm text-[hsl(220,14%,70%)]">Suite Immobilière — Maroc</p></p>
               </div>
             </div>
             <p className="text-lg text-[hsl(220,14%,80%)] leading-relaxed">
