@@ -76,7 +76,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <img src={logoJibril} alt="Jibril Immo" className="h-9 w-auto shrink-0" />
         {(sidebarOpen || mobileOpen) && (
           <div className="animate-fade-in">
-            <h1 className="font-heading text-base font-bold text-sidebar-foreground">Jibril Immo</h1>
+            <h1 className="font-heading text-base font-bold text-sidebar-foreground">Jibril Immo Cloud</h1>
             <p className="text-[10px] text-muted-foreground font-medium"><p className="text-[10px] text-muted-foreground font-medium">PRO — Maroc</p></p>
           </div>
         )}
