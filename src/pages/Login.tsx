@@ -23,7 +23,7 @@ const Login: React.FC = () => {
     <div className="flex min-h-screen">
       {/* Left: Image */}
       <div className="hidden lg:flex lg:w-3/5 relative overflow-hidden">
-        <img src={loginBg} <img src={loginBg} alt="Immobilier Maroc" className="absolute inset-0 h-full w-full object-cover" /> className="absolute inset-0 h-full w-full object-cover" />
+        <img src={loginBg} alt="Immobilier Maroc" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[hsl(228,22%,13%)] via-[hsl(228,22%,13%,0.7)] to-transparent" />
         <div className="relative z-10 flex flex-col justify-end p-12">
           <div className="max-w-lg">
