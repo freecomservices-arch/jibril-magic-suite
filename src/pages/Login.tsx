@@ -31,7 +31,7 @@ const Login: React.FC = () => {
               <img src={logoJibril} alt="Jibril Immo" className="h-14 w-auto" />
               <div>
                 <h1 className="font-heading text-2xl font-bold text-[hsl(220,14%,91%)]">Jibril Immo Pro</h1>
-                <p className="text-sm text-[hsl(220,14%,70%)]">Suite Immobilière — Agadir</p>
+                <p className="text-sm text-[hsl(220,14%,70%)]"><p className="text-sm text-[hsl(220,14%,70%)]">Suite Immobilière — Maroc</p></p>
               </div>
             </div>
             <p className="text-lg text-[hsl(220,14%,80%)] leading-relaxed">
