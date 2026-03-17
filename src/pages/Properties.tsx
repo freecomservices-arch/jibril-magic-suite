@@ -55,9 +55,13 @@ const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void; on
         className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden cursor-pointer"
         onClick={onOpenGallery}
       >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <TypeIcon className="h-16 w-16 text-primary/20" />
-        </div>
+        {property.photos.length > 0 ? (
+          <img src={property.photos[0]} alt={property.title} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <TypeIcon className="h-16 w-16 text-primary/20" />
+          </div>
+        )}
         <div className="absolute top-3 left-3 flex gap-1.5">
           <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusColors[property.status]}`}>{property.status}</span>
           <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${mandatColors[property.mandat]}`}>{property.mandat}</span>
@@ -113,7 +117,11 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
   return (
     <div className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
       <div className="relative w-full sm:w-48 h-36 sm:h-auto bg-gradient-to-br from-primary/10 via-accent/5 to-muted shrink-0 cursor-pointer" onClick={onOpenGallery}>
-        <div className="absolute inset-0 flex items-center justify-center"><TypeIcon className="h-12 w-12 text-primary/20" /></div>
+        {property.photos.length > 0 ? (
+          <img src={property.photos[0]} alt={property.title} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center"><TypeIcon className="h-12 w-12 text-primary/20" /></div>
+        )}
         <div className="absolute top-2 left-2 flex gap-1">
           <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${statusColors[property.status]}`}>{property.status}</span>
         </div>
