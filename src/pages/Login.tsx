@@ -11,13 +11,16 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!login(username, password)) {
-      setError('Identifiants incorrects. Veuillez réessayer.');
-    }
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  
+  const success = await login(username, password);
+  
+  if (!success) {
+    setError('Identifiants incorrects. Veuillez réessayer.');
+  }
+};
 
   return (
     <div className="flex min-h-screen">
