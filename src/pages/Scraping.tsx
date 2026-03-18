@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { Globe, Search, Users, Building2, CheckCircle2, Filter, Plus, RefreshCw, UserPlus, ExternalLink, Copy, X, Loader2, Trash2 } from 'lucide-react';
 import StatCard from '@/components/StatCard';
@@ -28,21 +28,6 @@ type ScrapingSource = {
   active: boolean;
 };
 
-const initialLeads: Lead[] = [
-  { id: '1', source: 'Avito.ma', type: 'Bien', title: 'Appartement 3ch Agadir Founty', price: '1 600 000 DH', phone: '+212 6 XX XX XX XX', status: 'Nouveau', date: '25/02/2026', url: 'https://avito.ma/example1' },
-  { id: '2', source: 'Mubawab', type: 'Bien', title: 'Villa avec piscine Marina', price: '5 200 000 DH', phone: '+212 6 XX XX XX XX', status: 'Qualifié', date: '24/02/2026', url: 'https://mubawab.ma/example2' },
-  { id: '3', source: 'Facebook', type: 'Personne', title: 'MRE cherche investissement Agadir', price: '-', phone: '+33 6 XX XX XX XX', status: 'Nouveau', date: '24/02/2026', url: 'https://facebook.com/example3' },
-  { id: '4', source: 'LinkedIn', type: 'Personne', title: 'Cadre expatrié — relocation Agadir', price: '-', phone: '+212 6 XX XX XX XX', status: 'Doublon', date: '23/02/2026', url: 'https://linkedin.com/example4' },
-  { id: '5', source: 'Avito.ma', type: 'Bien', title: 'Terrain constructible Taghazout', price: '3 800 000 DH', phone: '+212 6 XX XX XX XX', status: 'Assigné', date: '23/02/2026', url: 'https://avito.ma/example5' },
-];
-
-const initialSources: ScrapingSource[] = [
-  { id: 's1', name: 'Avito.ma', url: 'https://avito.ma', active: true },
-  { id: 's2', name: 'Mubawab', url: 'https://mubawab.ma', active: true },
-  { id: 's3', name: 'Facebook', url: 'https://facebook.com', active: true },
-  { id: 's4', name: 'LinkedIn', url: 'https://linkedin.com', active: false },
-];
-
 const sourceIcons: Record<string, string> = {
   'Avito.ma': '🟠',
   'Mubawab': '🔵',
@@ -58,31 +43,11 @@ const statusColors: Record<string, string> = {
   'Importé': 'bg-muted text-muted-foreground',
 };
 
-const randomTitles: Record<string, string[]> = {
-  'Avito.ma': [
-    'Appartement 2ch centre Agadir', 'Duplex vue mer Taghazout', 'Local commercial Hay Mohammadi',
-    'Studio meublé Agadir Bay', 'Riad rénové Taroudant',
-  ],
-  'Mubawab': [
-    'Villa contemporaine Sonaba', 'Appartement neuf Tilila', 'Penthouse Marina Agadir',
-    'Terrain zone villa Aourir', 'Appartement F4 Dakhla',
-  ],
-  'Facebook': [
-    'Famille MRE cherche villa', 'Investisseur cherche R+3', 'Retraité français cherche appart',
-    'Couple cherche terrain Tamraght', 'Entrepreneur cherche local',
-  ],
-  'LinkedIn': [
-    'DG expatrié relocation', 'Cadre IT remote Agadir', 'Consultant cherche bureau partagé',
-    'Manager hôtelier cherche villa', 'Architecte cherche terrain projet',
-  ],
-};
-
-const randomPrices = ['850 000 DH', '1 200 000 DH', '1 800 000 DH', '2 500 000 DH', '3 200 000 DH', '4 500 000 DH', '6 000 000 DH'];
-
 const Scraping: React.FC = () => {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [sources, setSources] = useState<ScrapingSource[]>(initialSources);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [sources, setSources] = useState<ScrapingSource[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [filterSource, setFilterSource] = useState<string>('all');
@@ -95,6 +60,60 @@ const Scraping: React.FC = () => {
   const [showAddSource, setShowAddSource] = useState(false);
   const [newSourceName, setNewSourceName] = useState('');
   const [newSourceUrl, setNewSourceUrl] = useState('');
+
+  // API Base URL
+  const API_URL = 'https://api.jibrilimmo.cloud/api';
+
+  // Get auth token
+  const getToken = () => localStorage.getItem('token');
+
+  // Fetch sources
+  const fetchSources = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/sources/`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSources(data);
+      }
+    } catch (error) {
+      console.error('Erreur fetch sources:', error);
+    }
+  };
+
+  // Fetch leads
+  const fetchLeads = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/leads/`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLeads(data.leads || []);
+      }
+    } catch (error) {
+      console.error('Erreur fetch leads:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      await Promise.all([fetchSources(), fetchLeads()]);
+    };
+    loadData();
+  }, []);
 
   // Filtered leads
   const filteredLeads = useMemo(() => {
@@ -116,9 +135,10 @@ const Scraping: React.FC = () => {
     return { total, biens, doublons, qualifies };
   }, [leads]);
 
-  // Scan simulation
-  const handleScan = () => {
+  // Scan - API CALL
+  const handleScan = async () => {
     setScanning(true);
+    
     const activeSources = sources.filter(s => s.active);
     if (activeSources.length === 0) {
       toast.error('Aucune source active. Activez au moins une source.');
@@ -126,84 +146,205 @@ const Scraping: React.FC = () => {
       return;
     }
 
-    toast.info('Scan en cours...', { duration: 2000 });
-
-    setTimeout(() => {
-      const newLeads: Lead[] = [];
-      const count = Math.floor(Math.random() * 3) + 1;
-      for (let i = 0; i < count; i++) {
-        const src = activeSources[Math.floor(Math.random() * activeSources.length)];
-        const type: 'Bien' | 'Personne' = src.name === 'Facebook' || src.name === 'LinkedIn' ? 'Personne' : 'Bien';
-        const titles = randomTitles[src.name] || [`Lead depuis ${src.name}`];
-        newLeads.push({
-          id: `l${Date.now()}-${i}`,
-          source: src.name,
-          type,
-          title: titles[Math.floor(Math.random() * titles.length)],
-          price: type === 'Bien' ? randomPrices[Math.floor(Math.random() * randomPrices.length)] : '-',
-          phone: '+212 6 XX XX XX XX',
-          status: 'Nouveau',
-          date: new Date().toLocaleDateString('fr-FR'),
-          url: src.url + '/new-' + Date.now(),
-        });
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/scan/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({
+          max_listings: 30,
+          scan_delay: 5,
+          max_pages: 3,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        toast.success(`${data.count} nouveau(x) lead(s) détecté(s) !`);
+        await fetchLeads();
+      } else {
+        toast.error(data.error || 'Erreur lors du scan');
       }
-      setLeads(prev => [...newLeads, ...prev]);
+    } catch (error) {
+      console.error('Erreur scan:', error);
+      toast.error('Erreur de connexion au serveur');
+    } finally {
       setScanning(false);
-      toast.success(`${count} nouveau(x) lead(s) détecté(s) !`);
-    }, 2500);
+    }
   };
 
   // Import lead as contact
-  const handleImport = (lead: Lead) => {
-    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'Importé' as const } : l));
-    toast.success(`"${lead.title}" importé comme contact`);
+  const handleImport = async (lead: Lead) => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/leads/${lead.id}/import/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({
+          lead_id: lead.id,
+          import_as: 'contact',
+        }),
+      });
+      
+      if (response.ok) {
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'Importé' } : l));
+        toast.success(`"${lead.title}" importé comme contact`);
+      } else {
+        toast.error('Erreur lors de l\'import');
+      }
+    } catch (error) {
+      console.error('Erreur import:', error);
+      toast.error('Erreur de connexion au serveur');
+    }
   };
 
   // Delete lead
-  const handleDelete = (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
-    toast.success('Lead supprimé');
+  const handleDelete = async (id: string) => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/leads/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        setLeads(prev => prev.filter(l => l.id !== id));
+        toast.success('Lead supprimé');
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Erreur delete:', error);
+      toast.error('Erreur de connexion au serveur');
+    }
   };
 
   // Change status
-  const handleStatusChange = (id: string, status: Lead['status']) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
-    toast.success(`Statut changé en "${status}"`);
+  const handleStatusChange = async (id: string, status: Lead['status']) => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/leads/${id}/status/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      
+      if (response.ok) {
+        setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+        toast.success(`Statut changé en "${status}"`);
+      } else {
+        toast.error('Erreur lors du changement de statut');
+      }
+    } catch (error) {
+      console.error('Erreur status:', error);
+      toast.error('Erreur de connexion au serveur');
+    }
   };
 
   // Add source
-  const handleAddSource = () => {
+  const handleAddSource = async () => {
     if (!newSourceName.trim() || !newSourceUrl.trim()) {
       toast.error('Nom et URL requis');
       return;
     }
-    const newSource: ScrapingSource = {
-      id: `s${Date.now()}`,
-      name: newSourceName.trim(),
-      url: newSourceUrl.trim(),
-      active: true,
-    };
-    setSources(prev => [...prev, newSource]);
-    if (!sourceIcons[newSource.name]) {
-      sourceIcons[newSource.name] = '🌐';
+    
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/sources/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({
+          name: newSourceName.trim(),
+          url: newSourceUrl.trim(),
+        }),
+      });
+      
+      if (response.ok) {
+        const newSource = await response.json();
+        setSources(prev => [...prev, {
+          id: String(newSource.id),
+          name: newSource.name,
+          url: newSource.url,
+          active: newSource.active,
+        }]);
+        if (!sourceIcons[newSource.name]) {
+          sourceIcons[newSource.name] = '🌐';
+        }
+        setNewSourceName('');
+        setNewSourceUrl('');
+        setShowAddSource(false);
+        toast.success(`Source "${newSource.name}" ajoutée`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Erreur lors de l\'ajout');
+      }
+    } catch (error) {
+      console.error('Erreur add source:', error);
+      toast.error('Erreur de connexion au serveur');
     }
-    if (!randomTitles[newSource.name]) {
-      randomTitles[newSource.name] = [`Lead depuis ${newSource.name}`];
-    }
-    setNewSourceName('');
-    setNewSourceUrl('');
-    setShowAddSource(false);
-    toast.success(`Source "${newSource.name}" ajoutée`);
   };
 
   // Toggle source
-  const toggleSource = (id: string) => {
-    setSources(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+  const toggleSource = async (id: string) => {
+    try {
+      const token = getToken();
+      const source = sources.find(s => s.id === id);
+      if (!source) return;
+      
+      const response = await fetch(`${API_URL}/sources/${id}/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({
+          active: !source.active,
+        }),
+      });
+      
+      if (response.ok) {
+        setSources(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+      }
+    } catch (error) {
+      console.error('Erreur toggle source:', error);
+    }
   };
 
-  const removeSource = (id: string) => {
-    setSources(prev => prev.filter(s => s.id !== id));
-    toast.success('Source supprimée');
+  const removeSource = async (id: string) => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/sources/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        setSources(prev => prev.filter(s => s.id !== id));
+        toast.success('Source supprimée');
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Erreur remove source:', error);
+      toast.error('Erreur de connexion au serveur');
+    }
   };
 
   const clearFilters = () => {
@@ -216,6 +357,16 @@ const Scraping: React.FC = () => {
   const hasActiveFilters = filterSource !== 'all' || filterType !== 'all' || filterStatus !== 'all' || searchQuery !== '';
 
   const uniqueSources = useMemo(() => [...new Set(leads.map(l => l.source))], [leads]);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
