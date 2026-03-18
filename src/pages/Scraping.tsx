@@ -49,25 +49,20 @@ const Scraping: React.FC = () => {
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Modals
   const [showAddSource, setShowAddSource] = useState(false);
   const [newSourceName, setNewSourceName] = useState('');
   const [newSourceUrl, setNewSourceUrl] = useState('');
 
-  // API Base URL
   const API_URL = 'https://api.jibrilimmo.cloud/api';
 
-  // Get auth token
   const getToken = () => localStorage.getItem('token');
 
-  // Fetch sources
   const fetchSources = async () => {
     try {
       const token = getToken();
@@ -79,14 +74,13 @@ const Scraping: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setSources(data);
+        setSources(Array.isArray(data) ? data : (data.results || []));
       }
     } catch (error) {
       console.error('Erreur fetch sources:', error);
     }
   };
 
-  // Fetch leads
   const fetchLeads = async () => {
     try {
       const token = getToken();
@@ -98,7 +92,7 @@ const Scraping: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setLeads(data.leads || []);
+        setLeads(Array.isArray(data) ? data : (data.results || []));
       }
     } catch (error) {
       console.error('Erreur fetch leads:', error);
@@ -107,7 +101,6 @@ const Scraping: React.FC = () => {
     }
   };
 
-  // Load data on mount
   useEffect(() => {
     const loadData = async () => {
       await Promise.all([fetchSources(), fetchLeads()]);
@@ -115,7 +108,6 @@ const Scraping: React.FC = () => {
     loadData();
   }, []);
 
-  // Filtered leads
   const filteredLeads = useMemo(() => {
     return leads.filter(l => {
       if (filterSource !== 'all' && l.source !== filterSource) return false;
@@ -126,7 +118,6 @@ const Scraping: React.FC = () => {
     });
   }, [leads, filterSource, filterType, filterStatus, searchQuery]);
 
-  // Stats
   const stats = useMemo(() => {
     const total = leads.length;
     const biens = leads.filter(l => l.type === 'Bien').length;
@@ -135,7 +126,6 @@ const Scraping: React.FC = () => {
     return { total, biens, doublons, qualifies };
   }, [leads]);
 
-  // Scan - API CALL
   const handleScan = async () => {
     setScanning(true);
     
@@ -177,7 +167,6 @@ const Scraping: React.FC = () => {
     }
   };
 
-  // Import lead as contact
   const handleImport = async (lead: Lead) => {
     try {
       const token = getToken();
@@ -205,7 +194,6 @@ const Scraping: React.FC = () => {
     }
   };
 
-  // Delete lead
   const handleDelete = async (id: string) => {
     try {
       const token = getToken();
@@ -228,7 +216,6 @@ const Scraping: React.FC = () => {
     }
   };
 
-  // Change status
   const handleStatusChange = async (id: string, status: Lead['status']) => {
     try {
       const token = getToken();
@@ -253,7 +240,6 @@ const Scraping: React.FC = () => {
     }
   };
 
-  // Add source
   const handleAddSource = async () => {
     if (!newSourceName.trim() || !newSourceUrl.trim()) {
       toast.error('Nom et URL requis');
@@ -299,7 +285,6 @@ const Scraping: React.FC = () => {
     }
   };
 
-  // Toggle source
   const toggleSource = async (id: string) => {
     try {
       const token = getToken();
@@ -371,7 +356,6 @@ const Scraping: React.FC = () => {
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -391,7 +375,6 @@ const Scraping: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard title="Leads Scrapés" value={stats.total} icon={Users} variant="primary" subtitle="Total" />
           <StatCard title="Biens Détectés" value={stats.biens} icon={Building2} variant="accent" />
@@ -399,7 +382,6 @@ const Scraping: React.FC = () => {
           <StatCard title="Qualifiés / Assignés" value={stats.qualifies} icon={CheckCircle2} variant="default" />
         </div>
 
-        {/* Active Sources */}
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="text-sm font-semibold text-card-foreground mb-3">Sources configurées</h3>
           <div className="flex flex-wrap gap-2">
@@ -418,7 +400,6 @@ const Scraping: React.FC = () => {
           </div>
         </div>
 
-        {/* Leads Table */}
         <div className="rounded-lg border border-border bg-card card-shadow overflow-hidden">
           <div className="border-b border-border px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
@@ -446,7 +427,6 @@ const Scraping: React.FC = () => {
             </div>
           </div>
 
-          {/* Filter bar */}
           {showFilters && (
             <div className="border-b border-border px-5 py-3 flex flex-wrap gap-3 bg-muted/30">
               <div className="flex items-center gap-2">
@@ -571,7 +551,6 @@ const Scraping: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Source Modal */}
       <Dialog open={showAddSource} onOpenChange={setShowAddSource}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
