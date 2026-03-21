@@ -29,9 +29,6 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 }
 
 export const api = {
-  // ─────────────────────────────────────────────────────────────────────────
-  // AUTHENTIFICATION
-  // ─────────────────────────────────────────────────────────────────────────
   auth: {
     login: (username: string, password: string) => 
       apiRequest('/login/', { 
@@ -49,9 +46,6 @@ export const api = {
       }),
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SOURCES DE SCRAPING
-  // ─────────────────────────────────────────────────────────────────────────
   sources: {
     list: () => 
       apiRequest('/sources/'),
@@ -72,9 +66,6 @@ export const api = {
       apiRequest(`/sources/${id}/`, { method: 'DELETE' }),
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // LEADS
-  // ─────────────────────────────────────────────────────────────────────────
   leads: {
     list: (params?: { source?: string; city?: string; status?: string; limit?: number }) => {
       const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
@@ -84,7 +75,7 @@ export const api = {
     detail: (id: string) => 
       apiRequest(`/leads/${id}/`),
     
-    update: (id: string, data: { status?: string; notes?: string; assigned_to?: string; phone?: string; email?: string }) => 
+    update: (id: string, data: { status?: string; notes?: string }) => 
       apiRequest(`/leads/${id}/`, { 
         method: 'PATCH', 
         body: JSON.stringify(data) 
@@ -94,9 +85,6 @@ export const api = {
       apiRequest(`/leads/${id}/`, { method: 'DELETE' }),
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCRAPING
-  // ─────────────────────────────────────────────────────────────────────────
   scraping: {
     scan: (source?: string, url?: string, max_listings?: number) => 
       apiRequest('/scan/', { 
@@ -111,9 +99,6 @@ export const api = {
       apiRequest('/scan/'),
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // HEALTH CHECK
-  // ─────────────────────────────────────────────────────────────────────────
   health: () => 
     apiRequest('/health/'),
 };
