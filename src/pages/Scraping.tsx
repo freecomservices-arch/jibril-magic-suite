@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
-import { Plus, RefreshCw, Globe } from 'lucide-react';
+import { Plus, RefreshCw, Globe, Trash2 } from 'lucide-react';
 
 interface Source {
   id: string;
@@ -23,6 +23,8 @@ export default function Scraping() {
   const [isAdding, setIsAdding] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [newSource, setNewSource] = useState({ name: '', url: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -34,14 +36,20 @@ export default function Scraping() {
 
   const loadSources = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const data = await api.sources.list();
       setSources(Array.isArray(data) ? data : data.results || []);
-    } catch (error) {
+    } catch (err) {
+      console.error('Erreur chargement sources:', err);
+      setError('Impossible de charger les sources');
       toast({
         title: 'Erreur',
         description: 'Impossible de charger les sources',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,6 +57,15 @@ export default function Scraping() {
   // AJOUTER UNE SOURCE
   // ─────────────────────────────────────────────────────────────────────────
   const handleAddSource = async () => {
+    if (!newSource.name.trim() || !newSource.url.trim()) {
+      toast({
+        title: 'Erreur',
+        description: 'Nom et URL requis',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const data = await api.sources.create(newSource);
       setSources([...sources, data]);
@@ -58,11 +75,38 @@ export default function Scraping() {
       });
       setIsAdding(false);
       setNewSource({ name: '', url: '' });
+      setError(null);
       loadSources();
-    } catch (error) {
+    } catch (err) {
+      console.error('Erreur ajout source:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Échec de l\'ajout';
+      setError(errorMessage);
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Échec de l\'ajout',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUPPRIMER UNE SOURCE
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleDeleteSource = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette source ?')) return;
+    
+    try {
+      await api.sources.delete(id);
+      setSources(sources.filter(s => s.id !== id));
+      toast({
+        title: 'Source supprimée',
+        description: 'La source a été supprimée avec succès',
+      });
+      loadSources();
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: 'Échec de la suppression',
         variant: 'destructive',
       });
     }
@@ -79,10 +123,10 @@ export default function Scraping() {
         title: 'Scan lancé',
         description: 'Le scraping est en cours en arrière-plan',
       });
-    } catch (error) {
+    } catch (err) {
       toast({
         title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Échec du scan',
+        description: err instanceof Error ? err.message : 'Échec du scan',
         variant: 'destructive',
       });
     } finally {
@@ -99,11 +143,14 @@ export default function Scraping() {
             Scraping & Acquisition
           </h1>
           <p className="text-muted-foreground mt-1">
-            Leads scrapés depuis {sources.length} source(s) active(s)
+            Leads scrapés depuis {sources.filter(s => s.active).length} source(s) active(s)
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleScan} disabled={isScanning || sources.length === 0}>
+          <Button 
+            onClick={handleScan} 
+            disabled={isScanning || sources.length === 0}
+          >
             <RefreshCw className={`w-4 h-4 mr-2 ${isScanning ? 'animate-spin' : ''}`} />
             {isScanning ? 'Scan en cours...' : 'Lancer un scan'}
           </Button>
@@ -145,10 +192,24 @@ export default function Scraping() {
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────
+          MESSAGE D'ERREUR
+          ─────────────────────────────────────────────────────────────────── */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────
           LISTE DES SOURCES
           ─────────────────────────────────────────────────────────────────── */}
       <div className="grid gap-4">
-        {sources.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <RefreshCw className="w-12 h-12 mx-auto mb-4 animate-spin opacity-50" />
+            <p>Chargement des sources...</p>
+          </div>
+        ) : sources.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>Aucune source configurée</p>
@@ -179,6 +240,13 @@ export default function Scraping() {
                 >
                   {source.active ? 'Actif' : 'Inactif'}
                 </span>
+                <button
+                  onClick={() => handleDeleteSource(source.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))
