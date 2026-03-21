@@ -95,58 +95,10 @@ export const api = {
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // CONTACTS
-  // ─────────────────────────────────────────────────────────────────────────
-  contacts: {
-    list: () => 
-      apiRequest('/contacts/'),
-    
-    create: (data: { name: string; phone?: string; email?: string; type?: string; notes?: string }) => 
-      apiRequest('/contacts/', { 
-        method: 'POST', 
-        body: JSON.stringify(data) 
-      }),
-    
-    update: (id: string, data: { name?: string; phone?: string; email?: string; type?: string; notes?: string }) => 
-      apiRequest(`/contacts/${id}/`, { 
-        method: 'PATCH', 
-        body: JSON.stringify(data) 
-      }),
-    
-    delete: (id: string) => 
-      apiRequest(`/contacts/${id}/`, { method: 'DELETE' }),
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // PROPERTIES
-  // ─────────────────────────────────────────────────────────────────────────
-  properties: {
-    list: (params?: { city?: string; property_type?: string; status?: string }) => {
-      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
-      return apiRequest(`/properties/${queryString}`);
-    },
-    
-    create: (data: { title: string; price: number; location?: string; city?: string; property_type?: string; area?: number; rooms?: number; description?: string }) => 
-      apiRequest('/properties/', { 
-        method: 'POST', 
-        body: JSON.stringify(data) 
-      }),
-    
-    update: (id: string, data: { title?: string; price?: number; status?: string }) => 
-      apiRequest(`/properties/${id}/`, { 
-        method: 'PATCH', 
-        body: JSON.stringify(data) 
-      }),
-    
-    delete: (id: string) => 
-      apiRequest(`/properties/${id}/`, { method: 'DELETE' }),
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
   // SCRAPING
   // ─────────────────────────────────────────────────────────────────────────
   scraping: {
-    scan: (source: string, url?: string, max_listings?: number) => 
+    scan: (source?: string, url?: string, max_listings?: number) => 
       apiRequest('/scan/', { 
         method: 'POST', 
         body: JSON.stringify({ source, url, max_listings }) 
