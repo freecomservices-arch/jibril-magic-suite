@@ -6,8 +6,9 @@ WORKDIR /app
 # Copier les fichiers de configuration
 COPY package*.json ./
 
-# Installer les dépendances (sans legacy-peer-deps)
-RUN npm ci
+# Installer les dépendances (Changement ICI : npm install au lieu de npm ci)
+# Cela va mettre à jour le lock file automatiquement
+RUN npm install
 
 # Copier le reste des fichiers
 COPY . .
