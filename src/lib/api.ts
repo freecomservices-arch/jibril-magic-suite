@@ -86,3 +86,9 @@ export const api = {
 
   health: () => apiClient('/health/'),
 };
+
+export const startScan = (source: string, maxListings: number) =>
+  apiClient('/scan/', {
+    method: 'POST',
+    body: JSON.stringify({ source, max_listings: maxListings }),
+  });

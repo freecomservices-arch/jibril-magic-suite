@@ -118,17 +118,10 @@ export default function Scraping() {
   const handleScan = async () => {
     setIsScanning(true);
     try {
-      await api.scraping.scanAll();
-      toast({
-        title: 'Scan lancé',
-        description: 'Le scraping est en cours en arrière-plan',
-      });
-    } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Échec du scan',
-        variant: 'destructive',
-      });
+      await startScan('avito', 50);
+      toast({ title: 'Succès', description: 'Ordre de scan envoyé !' });
+    } catch (e) {
+      toast({ title: 'Erreur', variant: 'destructive' });
     } finally {
       setIsScanning(false);
     }
