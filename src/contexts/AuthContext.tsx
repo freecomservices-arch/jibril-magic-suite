@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { api } from '@/lib/api';
 
 export interface User {
   id: string;
@@ -18,8 +19,6 @@ interface AuthContextType {
   allUsers: User[];
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.jibrilimmo.cloud';
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -30,29 +29,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/api/login/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      const data = await api.auth.login(username, password);
+      const token = data.token || data.access || data.access_token;
+      const backendUser = data.user;
 
-      if (response.ok) {
-        const data = await response.json();
-        const userData: User = {
-          id: String(data.user.id),
-          username: data.user.username,
-          name: data.user.username,
-          role: data.user.is_superuser ? 'admin' : 'agent',
-          email: data.user.email,
-        };
-        setUser(userData);
-        localStorage.setItem('jibril-user', JSON.stringify(userData));
-        localStorage.setItem('token', data.token);
-        return true;
+      if (!token || !backendUser) {
+        return false;
       }
-      return false;
+
+      const userData: User = {
+        id: String(backendUser.id),
+        username: backendUser.username,
+        name: backendUser.name || backendUser.full_name || backendUser.username,
+        role: backendUser.is_superuser || backendUser.role === 'admin' ? 'admin' : 'agent',
+        email: backendUser.email,
+        phone: backendUser.phone,
+        avatar: backendUser.avatar,
+      };
+
+      setUser(userData);
+      localStorage.setItem('jibril-user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       return false;
