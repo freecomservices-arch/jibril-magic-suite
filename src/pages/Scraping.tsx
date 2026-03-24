@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/lib/api';
+import { api, startScan } from '@/lib/api';
 import { Plus, RefreshCw, Globe, Trash2 } from 'lucide-react';
 
 interface Source {
@@ -118,17 +118,10 @@ export default function Scraping() {
   const handleScan = async () => {
     setIsScanning(true);
     try {
-      await api.scraping.scanAll();
-      toast({
-        title: 'Scan lancé',
-        description: 'Le scraping est en cours en arrière-plan',
-      });
-    } catch (err) {
-      toast({
-        title: 'Erreur',
-        description: err instanceof Error ? err.message : 'Échec du scan',
-        variant: 'destructive',
-      });
+      await startScan('avito', 50);
+      toast({ title: 'Succès', description: 'Ordre de scan envoyé !' });
+    } catch (e) {
+      toast({ title: 'Erreur', variant: 'destructive' });
     } finally {
       setIsScanning(false);
     }
