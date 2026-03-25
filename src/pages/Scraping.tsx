@@ -62,7 +62,7 @@ function SystemHealthBanner() {
   };
 
   return (
-    <div className="flex items-center gap-6 px-4 py-2 rounded-lg bg-muted/50 border border-border text-sm">
+    <div className="flex items-center gap-6 px-4 py-2 rounded-lg bg-muted/50 border border-border text-sm flex-1">
       {indicators.map(({ key, icon: Icon, fallbackName }) => {
         const svc = services[key];
         return (
@@ -74,6 +74,334 @@ function SystemHealthBanner() {
         );
       })}
     </div>
+  );
+}
+
+// ─── System Logs Panel ──────────────────────────────────────────────────────
+interface SystemLog {
+  timestamp: string;
+  level: 'ERROR' | 'WARNING' | 'INFO';
+  message: string;
+}
+
+function SystemLogsPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [filter, setFilter] = useState<'ALL' | 'ERROR' | 'WARNING' | 'INFO'>('ALL');
+  const [loading, setLoading] = useState(false);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.systemLogs();
+      setLogs(Array.isArray(data) ? data : data?.logs || []);
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) fetchLogs();
+  }, [open, fetchLogs]);
+
+  const filtered = filter === 'ALL' ? logs : logs.filter(l => l.level === filter);
+
+  const formatTimestamp = (ts: string) => {
+    try { return new Date(ts).toLocaleTimeString('fr-FR'); } catch { return ts; }
+  };
+
+  const levelColor = (level: string) => {
+    if (level === 'ERROR') return 'text-destructive';
+    if (level === 'WARNING') return 'text-warning';
+    return 'text-primary';
+  };
+
+  const downloadLogs = () => {
+    const content = filtered.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jibril-logs-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col">
+        <SheetHeader className="px-4 py-3 border-b border-border">
+          <SheetTitle className="flex items-center gap-2 text-base">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            Console Système
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Filters */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
+          {(['ALL', 'ERROR', 'WARNING', 'INFO'] as const).map(level => (
+            <Button
+              key={level}
+              size="sm"
+              variant={filter === level ? 'default' : 'outline'}
+              className="h-7 text-xs px-2.5"
+              onClick={() => setFilter(level)}
+            >
+              {level === 'ALL' ? 'Tous' : level}
+            </Button>
+          ))}
+          <div className="flex-1" />
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={downloadLogs}>
+            <Download className="h-3 w-3" /> Exporter
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+
+        {/* Terminal */}
+        <div className="flex-1 overflow-y-auto bg-[hsl(var(--card))] p-4 font-mono text-xs space-y-0.5">
+          {filtered.length === 0 ? (
+            <p className="text-muted-foreground italic text-center py-8">
+              {loading ? 'Chargement...' : 'Aucun log disponible'}
+            </p>
+          ) : (
+            filtered.map((log, i) => (
+              <div key={i} className="flex gap-2 py-0.5 hover:bg-muted/30 px-1 rounded">
+                <span className="text-muted-foreground shrink-0">[{formatTimestamp(log.timestamp)}]</span>
+                <span className={`shrink-0 font-bold ${levelColor(log.level)}`}>[{log.level}]</span>
+                <span className="text-foreground">{log.message}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── IA Settings Modal ──────────────────────────────────────────────────────
+interface IAAgent {
+  name: string;
+  api_key: string;
+  model: string;
+  active: boolean;
+}
+
+interface SystemSettings {
+  agents: IAAgent[];
+  vision_timeout: number;
+  economy_mode: boolean;
+}
+
+function IASettingsModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [settings, setSettings] = useState<SystemSettings>({
+    agents: [],
+    vision_timeout: 30,
+    economy_mode: false,
+  });
+  const [activeTab, setActiveTab] = useState<'agents' | 'system'>('agents');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (open) {
+      setLoading(true);
+      api.settings.get()
+        .then(data => {
+          setSettings({
+            agents: data?.agents || [],
+            vision_timeout: data?.vision_timeout ?? 30,
+            economy_mode: data?.economy_mode ?? false,
+          });
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.settings.save(settings as unknown as Record<string, unknown>);
+      toast({ title: 'Paramètres sauvegardés' });
+      onOpenChange(false);
+    } catch (err) {
+      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Échec de la sauvegarde', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addAgent = () => {
+    setSettings(prev => ({
+      ...prev,
+      agents: [...prev.agents, { name: '', api_key: '', model: '', active: true }],
+    }));
+  };
+
+  const updateAgent = (index: number, field: keyof IAAgent, value: string | boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      agents: prev.agents.map((a, i) => i === index ? { ...a, [field]: value } : a),
+    }));
+  };
+
+  const removeAgent = (index: number) => {
+    setSettings(prev => ({
+      ...prev,
+      agents: prev.agents.filter((_, i) => i !== index),
+    }));
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-primary" />
+            Configuration du Système
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-border">
+          <button
+            onClick={() => setActiveTab('agents')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'agents'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Brain className="h-3.5 w-3.5 inline mr-1.5" />
+            Agents IA
+          </button>
+          <button
+            onClick={() => setActiveTab('system')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'system'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Shield className="h-3.5 w-3.5 inline mr-1.5" />
+            Paramètres Système
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="py-12 text-center text-muted-foreground text-sm">Chargement...</div>
+        ) : (
+          <div className="flex-1 overflow-y-auto space-y-4 py-2">
+            {/* Tab: Agents IA */}
+            {activeTab === 'agents' && (
+              <div className="space-y-3">
+                {settings.agents.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Brain className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Aucun agent IA configuré</p>
+                  </div>
+                )}
+                {settings.agents.map((agent, i) => (
+                  <div key={i} className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground">Agent #{i + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={agent.active}
+                          onCheckedChange={(v) => updateAgent(i, 'active', v)}
+                        />
+                        <button
+                          onClick={() => removeAgent(i)}
+                          className="p-1 rounded text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Nom</label>
+                        <Input
+                          value={agent.name}
+                          onChange={e => updateAgent(i, 'name', e.target.value)}
+                          placeholder="Ex: DeepSeek"
+                          className="mt-1 h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Modèle</label>
+                        <Input
+                          value={agent.model}
+                          onChange={e => updateAgent(i, 'model', e.target.value)}
+                          placeholder="Ex: deepseek-chat"
+                          className="mt-1 h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Key className="h-3 w-3" /> Clé API
+                      </label>
+                      <Input
+                        type="password"
+                        value={agent.api_key}
+                        onChange={e => updateAgent(i, 'api_key', e.target.value)}
+                        placeholder="sk-..."
+                        className="mt-1 h-8 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="w-full gap-2" onClick={addAgent}>
+                  <Plus className="h-3.5 w-3.5" /> Ajouter un Agent
+                </Button>
+              </div>
+            )}
+
+            {/* Tab: System */}
+            {activeTab === 'system' && (
+              <div className="space-y-5">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Timeout Vision (sec)</label>
+                  <Input
+                    type="number"
+                    value={settings.vision_timeout}
+                    onChange={e => setSettings(prev => ({ ...prev, vision_timeout: parseInt(e.target.value) || 30 }))}
+                    className="mt-1 max-w-[200px]"
+                    min={5}
+                    max={300}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Temps max d'attente pour l'analyse d'image par IA</p>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Mode Économie</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Réduit les appels IA pour économiser les crédits</p>
+                  </div>
+                  <Switch
+                    checked={settings.economy_mode}
+                    onCheckedChange={v => setSettings(prev => ({ ...prev, economy_mode: v }))}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="border-t border-border pt-3 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+            Sauvegarder
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
