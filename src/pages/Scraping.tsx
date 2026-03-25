@@ -113,15 +113,15 @@ export default function Scraping() {
       setSources(Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || []);
       const mappedLeads = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
         id: String(l.id),
-        title: l.title || '',
-        price: l.price || 0,
-        city: l.city || l.location || '',
+        title: l.titre || l.title || '',
+        price: l.prix || l.price || 0,
+        city: l.ville || l.city || l.localisation || '',
         source: l.source || '',
-        type: l.type || '',
+        type: l.type_bien || l.type || '',
         phone: l.phone || l.telephone || '',
         url: l.url || '',
         status: l.status || 'new',
-        created_at: l.created_at || new Date().toISOString(),
+        created_at: l.date_scraping || l.created_at || new Date().toISOString(),
       }));
       setLeads(mappedLeads);
     } catch (err) {
@@ -210,7 +210,7 @@ export default function Scraping() {
       addLog(`🔍 Scan de ${source.toUpperCase()} en cours...`, 'info');
       try {
         const result = await api.scraping.scan(source);
-        const count = result?.leads_count || result?.count || 0;
+        const count = result?.details?.new_leads || result?.leads_count || result?.count || 0;
         totalNewLeads += count;
         addLog(`✅ ${source.toUpperCase()} : ${count} lead(s) trouvé(s)`, 'success');
       } catch (err) {
@@ -234,15 +234,15 @@ export default function Scraping() {
       const leadsData = await api.leads.list();
       const mapped = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
         id: String(l.id),
-        title: l.title || '',
-        price: l.price || 0,
-        city: l.city || l.location || '',
+        title: l.titre || l.title || '',
+        price: l.prix || l.price || 0,
+        city: l.ville || l.city || l.localisation || '',
         source: l.source || '',
-        type: l.type || '',
+        type: l.type_bien || l.type || '',
         phone: l.phone || l.telephone || '',
         url: l.url || '',
         status: l.status || 'new',
-        created_at: l.created_at || new Date().toISOString(),
+        created_at: l.date_scraping || l.created_at || new Date().toISOString(),
       }));
       setLeads(mapped);
     } catch { /* ignore */ }
