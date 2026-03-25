@@ -19,8 +19,61 @@ import {
   Globe, RefreshCw, Search, Play, Clock, CheckCircle2,
   AlertCircle, Phone, MapPin, Tag, ExternalLink, Trash2,
   Terminal, ChevronDown, ChevronUp, Eye, Plus,
-  Database, Zap, Timer, Activity,
+  Database, Zap, Timer, Activity, Monitor, Brain,
 } from 'lucide-react';
+
+// ─── System Health Banner ────────────────────────────────────────────────────
+interface ServiceStatus {
+  name: string;
+  status: string;
+  message?: string;
+}
+
+function SystemHealthBanner() {
+  const [services, setServices] = useState<Record<string, ServiceStatus>>({});
+
+  const fetchHealth = useCallback(async () => {
+    try {
+      const data = await api.systemHealth();
+      if (data?.services) setServices(data.services);
+    } catch {
+      setServices({});
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+  }, [fetchHealth]);
+
+  const indicators = [
+    { key: 'scraper', icon: Monitor, fallbackName: 'Vision & Navigateur' },
+    { key: 'database', icon: Database, fallbackName: 'Base de données' },
+    { key: 'ia_config', icon: Brain, fallbackName: 'Configuration IA' },
+  ];
+
+  const ledColor = (status?: string) => {
+    if (status === 'operational') return 'bg-green-500 shadow-[0_0_6px_hsl(142,71%,45%)]';
+    if (status === 'error') return 'bg-red-500 shadow-[0_0_6px_hsl(0,84%,60%)]';
+    return 'bg-muted-foreground/40';
+  };
+
+  return (
+    <div className="flex items-center gap-6 px-4 py-2 rounded-lg bg-muted/50 border border-border text-sm">
+      {indicators.map(({ key, icon: Icon, fallbackName }) => {
+        const svc = services[key];
+        return (
+          <div key={key} className="flex items-center gap-2" title={svc?.message || ''}>
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${ledColor(svc?.status)}`} />
+            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{svc?.name || fallbackName}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Source {
