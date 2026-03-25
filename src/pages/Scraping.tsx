@@ -327,7 +327,7 @@ export default function Scraping() {
             <div className="rounded-lg border border-border bg-card p-4 space-y-4">
               <h3 className="font-heading text-sm font-semibold text-foreground flex items-center gap-2">
                 <Globe className="h-4 w-4 text-primary" />
-                Sources
+                Sources par défaut
               </h3>
               <div className="space-y-3">
                 {DEFAULT_SOURCES.map(s => (
@@ -342,6 +342,34 @@ export default function Scraping() {
                   </label>
                 ))}
               </div>
+
+              {/* Custom API sources with checkboxes */}
+              {sources.length > 0 && (
+                <>
+                  <div className="border-t border-border pt-3">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mes sources</h4>
+                    <div className="space-y-2">
+                      {sources.map(s => (
+                        <div key={s.id} className="flex items-center gap-2 group">
+                          <Checkbox
+                            checked={selectedSources.has(s.name.toLowerCase())}
+                            onCheckedChange={() => toggleSource(s.name.toLowerCase())}
+                          />
+                          <span className="text-sm text-foreground truncate flex-1">🌐 {s.name}</span>
+                          <button
+                            onClick={() => handleDeleteSource(s.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded text-destructive hover:bg-destructive/10 transition-all"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
               <Button
                 onClick={handleScan}
                 disabled={scanning || selectedSources.size === 0}
@@ -353,20 +381,42 @@ export default function Scraping() {
               </Button>
             </div>
 
-            {/* Sources from API */}
-            {sources.length > 0 && (
-              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sources API</h3>
-                {sources.map(s => (
-                  <div key={s.id} className="flex items-center justify-between">
-                    <span className="text-sm text-foreground truncate max-w-[140px]">{s.name}</span>
-                    <Badge variant={s.active ? 'default' : 'secondary'} className="text-[10px]">
-                      {s.active ? 'Actif' : 'Inactif'}
-                    </Badge>
+            {/* Add source dialog */}
+            <Dialog open={addSourceOpen} onOpenChange={setAddSourceOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full gap-2">
+                  <Plus className="h-3.5 w-3.5" /> Ajouter une source
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Ajouter une source de scraping</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Nom de la source</label>
+                    <Input
+                      value={newSource.name}
+                      onChange={e => setNewSource({ ...newSource, name: e.target.value })}
+                      placeholder="Ex: Avito Agadir Particulier"
+                      className="mt-1"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                  <div>
+                    <label className="text-sm font-medium text-foreground">URL</label>
+                    <Input
+                      value={newSource.url}
+                      onChange={e => setNewSource({ ...newSource, url: e.target.value })}
+                      placeholder="https://www.avito.ma/..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button onClick={handleAddSource} className="w-full gap-2">
+                    <Plus className="h-4 w-4" /> Ajouter
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* ─── Main Zone ────────────────────────────────────────────── */}
