@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Globe, RefreshCw, Search, Play, Clock, CheckCircle2,
   AlertCircle, Phone, MapPin, Tag, ExternalLink, Trash2,
@@ -66,11 +67,21 @@ function SystemHealthBanner() {
       {indicators.map(({ key, icon: Icon, fallbackName }) => {
         const svc = services[key];
         return (
-          <div key={key} className="flex items-center gap-2" title={svc?.message || ''}>
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${ledColor(svc?.status)}`} />
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground">{svc?.name || fallbackName}</span>
-          </div>
+          <Tooltip key={key}>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 cursor-default">
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${ledColor(svc?.status)}`} />
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground">{svc?.name || fallbackName}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p className="font-medium">{svc?.name || fallbackName}</p>
+              <p className="text-xs text-muted-foreground">
+                {svc?.message || (svc?.status === 'operational' ? 'Service opérationnel' : svc?.status === 'error' ? 'Service en erreur' : 'Statut inconnu')}
+              </p>
+            </TooltipContent>
+          </Tooltip>
         );
       })}
     </div>
