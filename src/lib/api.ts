@@ -112,7 +112,7 @@ export const api = {
     scan: (source?: string, url?: string, max_listings?: number) =>
       apiClient('/scan/', { method: 'POST', body: JSON.stringify({ source, url, max_listings }) }),
     scanAll: () =>
-      apiClient('/scan-all/', { method: 'POST' }),
+      apiClient('/scan/all/', { method: 'POST' }),
     logs: () =>
       apiClient('/scan/'),
   },
