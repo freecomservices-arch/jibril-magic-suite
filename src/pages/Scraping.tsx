@@ -367,7 +367,14 @@ export default function Scraping() {
                             checked={selectedSources.has(s.name.toLowerCase())}
                             onCheckedChange={() => toggleSource(s.name.toLowerCase())}
                           />
-                          <span className="text-sm text-foreground truncate flex-1">🌐 {s.name}</span>
+                          <span className={`text-sm truncate flex-1 ${s.active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
+                            🌐 {s.name}
+                          </span>
+                          <Switch
+                            checked={s.active}
+                            onCheckedChange={() => handleToggleSourceActive(s)}
+                            className="scale-75"
+                          />
                           <button
                             onClick={() => handleDeleteSource(s.id)}
                             className="opacity-0 group-hover:opacity-100 p-1 rounded text-destructive hover:bg-destructive/10 transition-all"
