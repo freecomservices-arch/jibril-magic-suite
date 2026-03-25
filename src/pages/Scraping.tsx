@@ -130,6 +130,36 @@ export default function Scraping() {
     }
   };
 
+  // ─── Add custom source ──────────────────────────────────────────────────
+  const handleAddSource = async () => {
+    const name = newSource.name.trim();
+    const url = newSource.url.trim();
+    if (!name || !url) {
+      toast({ title: 'Erreur', description: 'Nom et URL requis', variant: 'destructive' });
+      return;
+    }
+    try {
+      await api.sources.create({ name, url, active: true });
+      toast({ title: 'Source ajoutée', description: `"${name}" a été ajoutée` });
+      setNewSource({ name: '', url: '' });
+      setAddSourceOpen(false);
+      loadData();
+    } catch (err) {
+      toast({ title: 'Erreur', description: err instanceof Error ? err.message : "Échec de l'ajout", variant: 'destructive' });
+    }
+  };
+
+  // ─── Delete custom source ──────────────────────────────────────────────
+  const handleDeleteSource = async (id: string) => {
+    try {
+      await api.sources.delete(id);
+      setSources(prev => prev.filter(s => s.id !== id));
+      toast({ title: 'Source supprimée' });
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de supprimer', variant: 'destructive' });
+    }
+  };
+
   // ─── Console log helper ─────────────────────────────────────────────────
   const addLog = useCallback((message: string, type: ScanLog['type'] = 'info') => {
     setLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString(), message, type }]);
