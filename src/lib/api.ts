@@ -118,6 +118,7 @@ export const api = {
   },
 
   health: () => apiClient('/health/'),
+  systemHealth: () => apiClient('/system/health'),
 };
 
 export const startScan = (source: string, maxListings: number) =>
