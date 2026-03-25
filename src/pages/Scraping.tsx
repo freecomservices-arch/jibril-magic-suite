@@ -161,6 +161,17 @@ export default function Scraping() {
     }
   };
 
+  // ─── Toggle source active/inactive ─────────────────────────────────────
+  const handleToggleSourceActive = async (source: Source) => {
+    try {
+      await api.sources.update(source.id, { active: !source.active });
+      setSources(prev => prev.map(s => s.id === source.id ? { ...s, active: !s.active } : s));
+      toast({ title: source.active ? 'Source désactivée' : 'Source activée' });
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de modifier la source', variant: 'destructive' });
+    }
+  };
+
   // ─── Console log helper ─────────────────────────────────────────────────
   const addLog = useCallback((message: string, type: ScanLog['type'] = 'info') => {
     setLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString(), message, type }]);
