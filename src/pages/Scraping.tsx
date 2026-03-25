@@ -12,10 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   Globe, RefreshCw, Search, Play, Clock, CheckCircle2,
   AlertCircle, Phone, MapPin, Tag, ExternalLink, Trash2,
-  Terminal, ChevronDown, ChevronUp, Eye,
+  Terminal, ChevronDown, ChevronUp, Eye, Plus,
   Database, Zap, Timer, Activity,
 } from 'lucide-react';
 
