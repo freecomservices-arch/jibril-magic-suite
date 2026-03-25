@@ -686,8 +686,32 @@ export default function Scraping() {
   return (
     <PageTransition>
       <div className="space-y-5">
-        {/* ─── System Health Banner ──────────────────────────────────── */}
-        <SystemHealthBanner />
+        {/* ─── System Health Banner + Actions ────────────────────────── */}
+        <div className="flex items-center gap-2">
+          <SystemHealthBanner />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => setLogsOpen(true)}
+            title="Console Système"
+          >
+            <AlertTriangle className="h-4 w-4 text-warning" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => setSettingsOpen(true)}
+            title="Configuration IA"
+          >
+            <Settings className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </div>
+
+        {/* Panels */}
+        <SystemLogsPanel open={logsOpen} onOpenChange={setLogsOpen} />
+        <IASettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
 
         {/* ─── Header ────────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
