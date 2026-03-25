@@ -15,11 +15,13 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   Globe, RefreshCw, Search, Play, Clock, CheckCircle2,
   AlertCircle, Phone, MapPin, Tag, ExternalLink, Trash2,
   Terminal, ChevronDown, ChevronUp, Eye, Plus,
   Database, Zap, Timer, Activity, Monitor, Brain,
+  AlertTriangle, Settings, Download, Shield, Key,
 } from 'lucide-react';
 
 // ─── System Health Banner ────────────────────────────────────────────────────
