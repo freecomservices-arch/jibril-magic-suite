@@ -91,6 +91,9 @@ export default function Scraping() {
   const [searchQuery, setSearchQuery] = useState('');
   const [scanHistory, setScanHistory] = useState<{ date: string; sources: string; leads: number; duration: string }[]>([]);
 
+  const [addSourceOpen, setAddSourceOpen] = useState(false);
+  const [newSource, setNewSource] = useState({ name: '', url: '' });
+
   const consoleRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
