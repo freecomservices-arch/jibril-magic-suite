@@ -210,7 +210,7 @@ export default function Scraping() {
       addLog(`🔍 Scan de ${source.toUpperCase()} en cours...`, 'info');
       try {
         const result = await api.scraping.scan(source);
-        const count = result?.leads_count || result?.count || 0;
+        const count = result?.details?.new_leads || result?.leads_count || result?.count || 0;
         totalNewLeads += count;
         addLog(`✅ ${source.toUpperCase()} : ${count} lead(s) trouvé(s)`, 'success');
       } catch (err) {
