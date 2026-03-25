@@ -535,15 +535,24 @@ export default function Scraping() {
       toast({ title: 'Erreur', description: 'Nom et URL requis', variant: 'destructive' });
       return;
     }
+    const localSource: Source = {
+      id: `local-${Date.now()}`,
+      name,
+      url,
+      active: true,
+      created_at: new Date().toISOString(),
+    };
     try {
-      await api.sources.create({ name, url, active: true });
+      const created = await api.sources.create({ name, url, active: true });
+      setSources(prev => [...prev, { ...localSource, ...created }]);
       toast({ title: 'Source ajoutée', description: `"${name}" a été ajoutée` });
-      setNewSource({ name: '', url: '' });
-      setAddSourceOpen(false);
-      loadData();
-    } catch (err) {
-      toast({ title: 'Erreur', description: err instanceof Error ? err.message : "Échec de l'ajout", variant: 'destructive' });
+    } catch {
+      // Fallback local quand le backend est injoignable
+      setSources(prev => [...prev, localSource]);
+      toast({ title: 'Source ajoutée (local)', description: `"${name}" ajoutée localement` });
     }
+    setNewSource({ name: '', url: '' });
+    setAddSourceOpen(false);
   };
 
   // ─── Delete custom source ──────────────────────────────────────────────
