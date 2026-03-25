@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
@@ -6,13 +6,14 @@ import {
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { mockContacts, formatMAD } from '@/data/mockData';
+import { formatMAD } from '@/data/mockData';
 import type { Contact } from '@/data/mockData';
 import AvatarInitials from '@/components/AvatarInitials';
 import EmptyState from '@/components/EmptyState';
 import ContactFormModal from '@/components/modals/CreateContactModal';
-import { ContactRowSkeleton, StatCardSkeleton, usePageLoading } from '@/components/Skeletons';
+import { ContactRowSkeleton, StatCardSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { api } from '@/lib/api';
 
 const typeColors: Record<string, string> = {
   'Acquéreur': 'bg-primary/15 text-primary',
@@ -37,7 +38,7 @@ const ContactRow: React.FC<{ contact: Contact; onEdit: () => void; onDelete: () 
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
         <h3 className="text-sm font-semibold text-card-foreground">{contact.name}</h3>
-        <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${typeColors[contact.type]}`}>{contact.type}</span>
+        <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${typeColors[contact.type] || ''}`}>{contact.type}</span>
         {contact.lockedBy && (
           <span className="flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
             <Lock className="h-3 w-3" /> Verrouillé
@@ -79,14 +80,45 @@ const ContactRow: React.FC<{ contact: Contact; onEdit: () => void; onDelete: () 
 const CONTACTS_PER_PAGE = 15;
 
 const Contacts: React.FC = () => {
-  const [contacts, setContacts] = useState<Contact[]>(mockContacts);
-  const loading = usePageLoading(600);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const data = await api.contacts.list();
+        const mapped: Contact[] = (Array.isArray(data) ? data : []).map((c: any) => ({
+          id: String(c.id),
+          name: c.name || '',
+          type: c.type || 'Acquéreur',
+          phone: c.phone || '',
+          email: c.email || undefined,
+          budget: c.budget || undefined,
+          exigences: c.exigences || c.requirements || undefined,
+          score: c.score ?? 50,
+          agentId: String(c.agent_id || c.agentId || ''),
+          lockedBy: c.locked_by || c.lockedBy || undefined,
+          lockedUntil: c.locked_until || c.lockedUntil || undefined,
+          createdAt: c.created_at || c.createdAt || new Date().toISOString(),
+          lastContact: c.last_contact || c.lastContact || undefined,
+          notes: c.notes || undefined,
+        }));
+        setContacts(mapped);
+      } catch (err) {
+        console.error('Erreur chargement contacts:', err);
+        toast.error('Impossible de charger les contacts');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContacts();
+  }, []);
 
   const confirmDelete = () => {
     if (deletingContact) {
@@ -108,7 +140,6 @@ const Contacts: React.FC = () => {
     return filtered.slice(start, start + CONTACTS_PER_PAGE);
   }, [filtered, currentPage]);
 
-  // Reset page when filters change
   React.useEffect(() => { setCurrentPage(1); }, [search, typeFilter]);
 
   const stats = {

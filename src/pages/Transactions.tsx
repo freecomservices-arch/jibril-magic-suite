@@ -1,13 +1,15 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { mockTransactions, mockProperties, mockContacts, formatMAD, Transaction } from '@/data/mockData';
+import { formatMAD, Transaction } from '@/data/mockData';
+import type { Property, Contact } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import TransactionFormModal from '@/components/modals/CreateTransactionModal';
-import { StatCardSkeleton, KanbanCardSkeleton, usePageLoading } from '@/components/Skeletons';
+import { StatCardSkeleton, KanbanCardSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { api } from '@/lib/api';
 
 const saleStages = ['Offre', 'Compromis', 'Notaire', 'Signé'] as const;
 const locationStages = ['Visite', 'Bail', 'État des lieux', 'Quittances'] as const;
@@ -25,15 +27,17 @@ const stageColors: Record<string, { bg: string; text: string; border: string; do
 
 interface KanbanCardProps {
   tx: Transaction;
+  properties: Property[];
+  contacts: Contact[];
   onDragStart: (e: React.DragEvent, txId: string) => void;
   onEdit: () => void;
   onDelete: () => void;
   type: 'Vente' | 'Location';
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, onDelete, type }) => {
-  const property = mockProperties.find(p => p.id === tx.propertyId);
-  const contact = mockContacts.find(c => c.id === tx.contactId);
+const KanbanCard: React.FC<KanbanCardProps> = ({ tx, properties, contacts, onDragStart, onEdit, onDelete, type }) => {
+  const property = properties.find(p => p.id === tx.propertyId);
+  const contact = contacts.find(c => c.id === tx.contactId);
   const accentColor = type === 'Vente' ? 'text-primary' : 'text-accent';
 
   return (
@@ -55,7 +59,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, onDele
           <p className={cn("text-xs font-bold mt-1.5", accentColor)}>
             {formatMAD(tx.amount)}{type === 'Location' ? '/mois' : ''}
           </p>
-          {tx.documents.length > 0 && (
+          {tx.documents && tx.documents.length > 0 && (
             <div className="flex items-center gap-1 mt-1.5">
               <FileText className="h-3 w-3 text-muted-foreground/60" />
               <span className="text-[10px] text-muted-foreground">{tx.documents.length} doc{tx.documents.length > 1 ? 's' : ''}</span>
@@ -86,6 +90,8 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ tx, onDragStart, onEdit, onDele
 interface KanbanColumnProps {
   stage: string;
   transactions: Transaction[];
+  properties: Property[];
+  contacts: Contact[];
   onDragStart: (e: React.DragEvent, txId: string) => void;
   onDrop: (e: React.DragEvent, stage: string) => void;
   onEditTx: (tx: Transaction) => void;
@@ -97,7 +103,7 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
-  stage, transactions, onDragStart, onDrop, onEditTx, onDeleteTx, type, isOver, onDragOver, onDragLeave,
+  stage, transactions, properties, contacts, onDragStart, onDrop, onEditTx, onDeleteTx, type, isOver, onDragOver, onDragLeave,
 }) => {
   const colors = stageColors[stage];
 
@@ -121,7 +127,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       <div className="flex-1 space-y-0">
         {transactions.length > 0 ? (
           transactions.map(tx => (
-            <KanbanCard key={tx.id} tx={tx} onDragStart={onDragStart} onEdit={() => onEditTx(tx)} onDelete={() => onDeleteTx(tx)} type={type} />
+            <KanbanCard key={tx.id} tx={tx} properties={properties} contacts={contacts} onDragStart={onDragStart} onEdit={() => onEditTx(tx)} onDelete={() => onDeleteTx(tx)} type={type} />
           ))
         ) : (
           <div className={cn("rounded-lg border-2 border-dashed p-6 text-center transition-colors flex-1 flex flex-col items-center justify-center", isOver ? "border-primary/40 bg-primary/5" : "border-border/50")}>
@@ -155,13 +161,75 @@ const StageProgress: React.FC<{ stages: readonly string[]; transactions: Transac
 );
 
 const Transactions: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const loading = usePageLoading(700);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const draggedTxId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [txData, propData, contactData] = await Promise.all([
+          api.transactions.list(),
+          api.properties.list(),
+          api.contacts.list(),
+        ]);
+
+        setTransactions((Array.isArray(txData) ? txData : []).map((t: any) => ({
+          id: String(t.id),
+          propertyId: String(t.property_id || t.propertyId || ''),
+          contactId: String(t.contact_id || t.contactId || ''),
+          type: t.type || 'Vente',
+          stage: t.stage || 'Offre',
+          amount: t.amount || 0,
+          commission: t.commission || 0,
+          agentId: String(t.agent_id || t.agentId || ''),
+          createdAt: t.created_at || t.createdAt || new Date().toISOString(),
+          documents: Array.isArray(t.documents) ? t.documents : [],
+        })));
+
+        setProperties((Array.isArray(propData) ? propData : []).map((p: any) => ({
+          id: String(p.id),
+          title: p.title || '',
+          type: p.type || 'Appartement',
+          transaction: p.transaction || 'Vente',
+          price: p.price || 0,
+          surface: p.surface || 0,
+          city: p.city || '',
+          quartier: p.quartier || '',
+          address: p.address || '',
+          description: p.description || '',
+          status: p.status || 'Disponible',
+          mandat: p.mandat || 'Simple',
+          agentId: String(p.agent_id || ''),
+          photos: Array.isArray(p.photos) ? p.photos : [],
+          createdAt: p.created_at || new Date().toISOString(),
+        })));
+
+        setContacts((Array.isArray(contactData) ? contactData : []).map((c: any) => ({
+          id: String(c.id),
+          name: c.name || '',
+          type: c.type || 'Acquéreur',
+          phone: c.phone || '',
+          email: c.email,
+          score: c.score ?? 50,
+          agentId: String(c.agent_id || ''),
+          createdAt: c.created_at || new Date().toISOString(),
+        })));
+      } catch (err) {
+        console.error('Erreur chargement transactions:', err);
+        toast.error('Impossible de charger les transactions');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
 
   const confirmDelete = () => {
     if (deletingTx) {
@@ -275,7 +343,7 @@ const Transactions: React.FC = () => {
           <StageProgress stages={saleStages} transactions={venteTx} />
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {saleStages.map(stage => (
-              <KanbanColumn key={stage} stage={stage} transactions={venteTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Vente" onEditTx={openEdit} onDeleteTx={setDeletingTx} />
+              <KanbanColumn key={stage} stage={stage} transactions={venteTx.filter(t => t.stage === stage)} properties={properties} contacts={contacts} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Vente" onEditTx={openEdit} onDeleteTx={setDeletingTx} />
             ))}
           </div>
         </div>
@@ -287,7 +355,7 @@ const Transactions: React.FC = () => {
           <StageProgress stages={locationStages} transactions={locationTx} />
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {locationStages.map(stage => (
-              <KanbanColumn key={stage} stage={stage} transactions={locationTx.filter(t => t.stage === stage)} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Location" onEditTx={openEdit} onDeleteTx={setDeletingTx} />
+              <KanbanColumn key={stage} stage={stage} transactions={locationTx.filter(t => t.stage === stage)} properties={properties} contacts={contacts} onDragStart={handleDragStart} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} isOver={dragOverStage === stage} type="Location" onEditTx={openEdit} onDeleteTx={setDeletingTx} />
             ))}
           </div>
         </div>
