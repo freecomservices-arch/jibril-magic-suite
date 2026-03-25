@@ -116,23 +116,6 @@ const handleSubmit = async (e: React.FormEvent) => {
             </button>
           </form>
 
-          <div className="mt-8 rounded-lg border border-border bg-muted/50 p-4">
-            <p className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5" /> Comptes de démonstration
-            </p>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
-              <p className="col-span-2 text-[11px] font-semibold text-primary/80 uppercase tracking-wider mb-1">Administrateurs</p>
-              <p><span className="font-medium text-foreground">admin</span> / Admin@2025</p>
-              <p><span className="font-medium text-foreground">directeur</span> / Dir@2025!</p>
-              <p className="col-span-2 text-[11px] font-semibold text-primary/80 uppercase tracking-wider mt-2 mb-1">Agents</p>
-              <p><span className="font-medium text-foreground">amin</span> / Amin@2025</p>
-              <p><span className="font-medium text-foreground">sarah</span> / Sarah@2025</p>
-              <p><span className="font-medium text-foreground">youssef</span> / Youssef@25</p>
-              <p><span className="font-medium text-foreground">fatima</span> / Fatima@25</p>
-              <p><span className="font-medium text-foreground">karim</span> / Karim@2025</p>
-              <p><span className="font-medium text-foreground">nadia</span> / Nadia@2025</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
