@@ -53,6 +53,39 @@ export const api = {
       }),
   },
 
+  properties: {
+    list: () => apiClient('/properties/'),
+    detail: (id: string) => apiClient(`/properties/${id}/`),
+    create: (data: Record<string, unknown>) =>
+      apiClient('/properties/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Record<string, unknown>) =>
+      apiClient(`/properties/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      apiClient(`/properties/${id}/`, { method: 'DELETE' }),
+  },
+
+  contacts: {
+    list: () => apiClient('/contacts/'),
+    detail: (id: string) => apiClient(`/contacts/${id}/`),
+    create: (data: Record<string, unknown>) =>
+      apiClient('/contacts/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Record<string, unknown>) =>
+      apiClient(`/contacts/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      apiClient(`/contacts/${id}/`, { method: 'DELETE' }),
+  },
+
+  transactions: {
+    list: () => apiClient('/transactions/'),
+    detail: (id: string) => apiClient(`/transactions/${id}/`),
+    create: (data: Record<string, unknown>) =>
+      apiClient('/transactions/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Record<string, unknown>) =>
+      apiClient(`/transactions/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      apiClient(`/transactions/${id}/`, { method: 'DELETE' }),
+  },
+
   sources: {
     list: () => apiClient('/sources/'),
     create: (data: { name: string; url: string; active?: boolean }) =>
