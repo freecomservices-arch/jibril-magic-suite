@@ -7,6 +7,7 @@ import PageTransition from '@/components/PageTransition';
 import StatCard from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -157,6 +158,17 @@ export default function Scraping() {
       toast({ title: 'Source supprimée' });
     } catch {
       toast({ title: 'Erreur', description: 'Impossible de supprimer', variant: 'destructive' });
+    }
+  };
+
+  // ─── Toggle source active/inactive ─────────────────────────────────────
+  const handleToggleSourceActive = async (source: Source) => {
+    try {
+      await api.sources.update(source.id, { active: !source.active });
+      setSources(prev => prev.map(s => s.id === source.id ? { ...s, active: !s.active } : s));
+      toast({ title: source.active ? 'Source désactivée' : 'Source activée' });
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de modifier la source', variant: 'destructive' });
     }
   };
 
@@ -355,7 +367,14 @@ export default function Scraping() {
                             checked={selectedSources.has(s.name.toLowerCase())}
                             onCheckedChange={() => toggleSource(s.name.toLowerCase())}
                           />
-                          <span className="text-sm text-foreground truncate flex-1">🌐 {s.name}</span>
+                          <span className={`text-sm truncate flex-1 ${s.active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
+                            🌐 {s.name}
+                          </span>
+                          <Switch
+                            checked={s.active}
+                            onCheckedChange={() => handleToggleSourceActive(s)}
+                            className="scale-75"
+                          />
                           <button
                             onClick={() => handleDeleteSource(s.id)}
                             className="opacity-0 group-hover:opacity-100 p-1 rounded text-destructive hover:bg-destructive/10 transition-all"
