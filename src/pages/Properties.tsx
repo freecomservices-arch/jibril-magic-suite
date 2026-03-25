@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
@@ -7,14 +7,15 @@ import {
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { mockProperties, formatMAD, CITIES, QUARTIERS, PROPERTY_TYPES } from '@/data/mockData';
+import { formatMAD, CITIES, QUARTIERS, PROPERTY_TYPES } from '@/data/mockData';
 import type { Property } from '@/data/mockData';
 import EmptyState from '@/components/EmptyState';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import PropertyMap from '@/components/PropertyMap';
 import PropertyFormModal from '@/components/modals/CreatePropertyModal';
-import { PropertyCardSkeleton, StatCardSkeleton, usePageLoading } from '@/components/Skeletons';
+import { PropertyCardSkeleton, StatCardSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { api } from '@/lib/api';
 
 const statusColors: Record<string, string> = {
   'Disponible': 'bg-success/15 text-success border-success/20',
@@ -55,7 +56,7 @@ const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void; on
         className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden cursor-pointer"
         onClick={onOpenGallery}
       >
-        {property.photos.length > 0 ? (
+        {property.photos && property.photos.length > 0 ? (
           <img src={property.photos[0]} alt={property.title} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -63,24 +64,24 @@ const PropertyCard: React.FC<{ property: Property; onOpenGallery: () => void; on
           </div>
         )}
         <div className="absolute top-3 left-3 flex gap-1.5">
-          <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusColors[property.status]}`}>{property.status}</span>
-          <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${mandatColors[property.mandat]}`}>{property.mandat}</span>
+          <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusColors[property.status] || ''}`}>{property.status}</span>
+          {property.mandat && <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${mandatColors[property.mandat] || ''}`}>{property.mandat}</span>}
         </div>
         <div className="absolute top-3 right-3">
           <span className="rounded-md bg-card/90 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-card-foreground">{property.transaction}</span>
         </div>
         <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-2 py-1 text-[10px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
-          <Camera className="h-3 w-3" /> {property.photos.length || 5} photos
+          <Camera className="h-3 w-3" /> {property.photos?.length || 0} photos
         </div>
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-card/80 to-transparent h-16" />
       </div>
       <div className="p-4">
         <h3 className="font-heading text-sm font-semibold text-card-foreground line-clamp-1">{property.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3" /> {property.quartier}, {property.city}
+          <MapPin className="h-3 w-3" /> {property.quartier ? `${property.quartier}, ` : ''}{property.city}
         </p>
         <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {property.surface} m²</span>
+          {property.surface && <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {property.surface} m²</span>}
           {property.bedrooms && <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {property.bedrooms}</span>}
           {property.bathrooms && <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {property.bathrooms}</span>}
         </div>
@@ -117,16 +118,16 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
   return (
     <div className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
       <div className="relative w-full sm:w-48 h-36 sm:h-auto bg-gradient-to-br from-primary/10 via-accent/5 to-muted shrink-0 cursor-pointer" onClick={onOpenGallery}>
-        {property.photos.length > 0 ? (
+        {property.photos && property.photos.length > 0 ? (
           <img src={property.photos[0]} alt={property.title} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center"><TypeIcon className="h-12 w-12 text-primary/20" /></div>
         )}
         <div className="absolute top-2 left-2 flex gap-1">
-          <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${statusColors[property.status]}`}>{property.status}</span>
+          <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${statusColors[property.status] || ''}`}>{property.status}</span>
         </div>
         <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-1.5 py-0.5 text-[9px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
-          <Camera className="h-3 w-3" /> {property.photos.length || 5}
+          <Camera className="h-3 w-3" /> {property.photos?.length || 0}
         </div>
       </div>
       <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
@@ -134,7 +135,7 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
           <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-heading text-sm font-semibold text-card-foreground line-clamp-1">{property.title}</h3>
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" /> {property.quartier}, {property.city}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" /> {property.quartier ? `${property.quartier}, ` : ''}{property.city}</p>
             </div>
             <p className="font-heading text-base font-bold text-primary whitespace-nowrap">
               {formatMAD(property.price)}
@@ -142,18 +143,18 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
             </p>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {property.surface} m²</span>
+            {property.surface && <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {property.surface} m²</span>}
             {property.bedrooms && <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {property.bedrooms} ch.</span>}
             {property.bathrooms && <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {property.bathrooms} sdb</span>}
             {property.rooms && <span className="flex items-center gap-1">🚪 {property.rooms} pièces</span>}
           </div>
           <div className="mt-2 flex gap-1.5">
-            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${mandatColors[property.mandat]}`}>{property.mandat}</span>
+            {property.mandat && <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${mandatColors[property.mandat] || ''}`}>{property.mandat}</span>}
             <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{property.transaction}</span>
             <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{property.type}</span>
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{property.description}</p>
+        {property.description && <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{property.description}</p>}
       </div>
       <div className="flex sm:flex-col items-center justify-end gap-1.5 p-3 sm:border-l border-t sm:border-t-0 border-border shrink-0">
         <button onClick={onOpenGallery} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
@@ -179,8 +180,8 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
 const PROPERTIES_PER_PAGE = 12;
 
 const Properties: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>(mockProperties);
-  const loading = usePageLoading(700);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -193,6 +194,42 @@ const Properties: React.FC = () => {
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const data = await api.properties.list();
+        const mapped: Property[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+          id: String(p.id),
+          title: p.title || '',
+          type: p.type || 'Appartement',
+          transaction: p.transaction || 'Vente',
+          price: p.price || 0,
+          surface: p.surface || 0,
+          rooms: p.rooms,
+          bedrooms: p.bedrooms,
+          bathrooms: p.bathrooms,
+          city: p.city || '',
+          quartier: p.quartier || p.neighborhood || '',
+          address: p.address || '',
+          description: p.description || '',
+          status: p.status || 'Disponible',
+          mandat: p.mandat || 'Simple',
+          agentId: String(p.agent_id || p.agentId || ''),
+          photos: Array.isArray(p.photos) ? p.photos : [],
+          createdAt: p.created_at || p.createdAt || new Date().toISOString(),
+          gps: p.gps || p.coordinates,
+        }));
+        setProperties(mapped);
+      } catch (err) {
+        console.error('Erreur chargement biens:', err);
+        toast.error('Impossible de charger les biens');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
+
   const confirmDelete = () => {
     if (deletingProperty) {
       setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
@@ -202,7 +239,7 @@ const Properties: React.FC = () => {
   };
 
   const filtered = properties.filter(p => {
-    if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.quartier.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !(p.quartier || '').toLowerCase().includes(search.toLowerCase())) return false;
     if (cityFilter && p.city !== cityFilter) return false;
     if (typeFilter && p.type !== typeFilter) return false;
     if (statusFilter && p.status !== statusFilter) return false;
