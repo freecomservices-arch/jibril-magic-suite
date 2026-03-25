@@ -119,6 +119,12 @@ export const api = {
 
   health: () => apiClient('/health/'),
   systemHealth: () => apiClient('/system/health'),
+  systemLogs: () => apiClient('/system/logs'),
+  settings: {
+    get: () => apiClient('/settings'),
+    save: (data: Record<string, unknown>) =>
+      apiClient('/settings', { method: 'POST', body: JSON.stringify(data) }),
+  },
 };
 
 export const startScan = (source: string, maxListings: number) =>
