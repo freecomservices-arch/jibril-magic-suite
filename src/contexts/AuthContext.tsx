@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiClient } from '@/lib/api';
+import { api } from '@/lib/api';
 
 interface User {
   id: string;
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Vérifier si un utilisateur est déjà stocké (session simple)
+    // Vérifier si un utilisateur est déjà stocké
     const storedUser = localStorage.getItem('jibril_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -34,16 +34,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string) => {
     try {
-      const response = await apiClient('/login/', {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) throw new Error('Login failed');
-
-      const userData = await response.json();
+      // Utilise la fonction définie dans api.ts
+      const userData = await api.auth.login(username, password);
+      
       setUser(userData);
       localStorage.setItem('jibril_user', JSON.stringify(userData));
+      
+      // Si l'API renvoie un token, on pourrait le stocker ici aussi si besoin
+      // Mais api.ts gère déjà le stockage du token s'il est renvoyé par le backend
     } catch (error) {
       console.error('Erreur login:', error);
       throw error;
@@ -52,12 +50,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await apiClient('/logout/', { method: 'POST' });
+      await api.auth.logout();
     } catch (e) {
       console.warn('Erreur logout API', e);
     } finally {
       setUser(null);
       localStorage.removeItem('jibril_user');
+      localStorage.removeItem('token'); // Nettoyage du token
     }
   };
 
