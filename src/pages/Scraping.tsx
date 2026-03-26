@@ -275,6 +275,7 @@ function IASettingsModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
             <Settings className="h-5 w-5 text-primary" />
             Configuration du Système
           </DialogTitle>
+          <DialogDescription>Gérez les agents IA et les paramètres système</DialogDescription>
         </DialogHeader>
 
         {/* Tabs */}
