@@ -1,23 +1,120 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
 
-interface User {
+export interface User {
   id: string;
   username: string;
   name: string;
   role: 'admin' | 'agent';
   email?: string;
+  phone?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  allUsers: User[];
   isAuthenticated: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const fallbackUsers: User[] = [
+  {
+    id: 'admin-jibril',
+    username: 'admin',
+    name: 'Admin Jibril',
+    role: 'admin',
+    email: 'admin@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 01',
+  },
+  {
+    id: 'directeur',
+    username: 'directeur',
+    name: 'Directeur Agence',
+    role: 'admin',
+    email: 'directeur@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 02',
+  },
+  {
+    id: 'amin',
+    username: 'amin',
+    name: 'Amin Belhaj',
+    role: 'agent',
+    email: 'amin@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 03',
+  },
+  {
+    id: 'sarah',
+    username: 'sarah',
+    name: 'Sarah Idrissi',
+    role: 'agent',
+    email: 'sarah@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 04',
+  },
+  {
+    id: 'youssef',
+    username: 'youssef',
+    name: 'Youssef El Mansouri',
+    role: 'agent',
+    email: 'youssef@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 05',
+  },
+  {
+    id: 'fatima',
+    username: 'fatima',
+    name: 'Fatima Zahra',
+    role: 'agent',
+    email: 'fatima@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 06',
+  },
+  {
+    id: 'karim',
+    username: 'karim',
+    name: 'Karim Bennis',
+    role: 'agent',
+    email: 'karim@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 07',
+  },
+  {
+    id: 'nadia',
+    username: 'nadia',
+    name: 'Nadia Alaoui',
+    role: 'agent',
+    email: 'nadia@jibrilimmo.ma',
+    phone: '+212 6 00 00 00 08',
+  },
+];
+
+const resolveFallbackUser = (identifier?: string) => {
+  if (!identifier) return null;
+
+  const normalized = identifier.trim().toLowerCase();
+  return fallbackUsers.find(
+    (candidate) =>
+      candidate.username.toLowerCase() === normalized ||
+      candidate.email?.toLowerCase() === normalized,
+  ) ?? null;
+};
+
+const normalizeUser = (payload: any, username: string): User => {
+  const profile = payload?.user ?? payload?.data ?? payload ?? {};
+  const fallbackUser = resolveFallbackUser(
+    profile.username ?? profile.email ?? payload?.username ?? payload?.email ?? username,
+  );
+
+  return {
+    id: String(profile.id ?? profile.user_id ?? fallbackUser?.id ?? username),
+    username: profile.username ?? fallbackUser?.username ?? username,
+    name: profile.name ?? profile.full_name ?? profile.display_name ?? fallbackUser?.name ?? username,
+    role: profile.role === 'admin' || fallbackUser?.role === 'admin' ? 'admin' : 'agent',
+    email: profile.email ?? fallbackUser?.email,
+    phone: profile.phone ?? profile.telephone ?? profile.mobile ?? fallbackUser?.phone,
+  };
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -34,14 +131,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string) => {
     try {
-      // Utilise la fonction définie dans api.ts
-      const userData = await api.auth.login(username, password);
-      
-      setUser(userData);
-      localStorage.setItem('jibril_user', JSON.stringify(userData));
-      
-      // Si l'API renvoie un token, on pourrait le stocker ici aussi si besoin
-      // Mais api.ts gère déjà le stockage du token s'il est renvoyé par le backend
+      const response = await api.auth.login(username, password);
+      const token = response?.token || response?.access || response?.access_token;
+      const normalizedUser = normalizeUser(response, username);
+
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+
+      setUser(normalizedUser);
+      localStorage.setItem('jibril_user', JSON.stringify(normalizedUser));
+      return true;
     } catch (error) {
       console.error('Erreur login:', error);
       throw error;
@@ -61,7 +161,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        allUsers: fallbackUsers,
+        isAuthenticated: !!user,
+        isAdmin: user?.role === 'admin',
+        isLoading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -14,11 +14,15 @@ const Login: React.FC = () => {
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError('');
-  
-  const success = await login(username, password);
-  
-  if (!success) {
-    setError('Identifiants incorrects. Veuillez réessayer.');
+
+  try {
+    const success = await login(username, password);
+
+    if (!success) {
+      setError('Identifiants incorrects. Veuillez réessayer.');
+    }
+  } catch (error) {
+    setError(error instanceof Error ? error.message : 'Connexion impossible. Veuillez réessayer.');
   }
 };
 
