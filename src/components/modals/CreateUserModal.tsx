@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +60,11 @@ const CreateUserModal: React.FC<Props> = ({ open, onClose, initialData, onSubmit
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}</DialogTitle>
+          {/* === CORRECTION ACCESSIBILITÉ === */}
+          <DialogDescription>
+            Remplissez les informations pour créer ou modifier un utilisateur.
+          </DialogDescription>
+          {/* ================================== */}
         </DialogHeader>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div>
