@@ -842,7 +842,8 @@ export default function Scraping() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Ajouter une source de scraping</DialogTitle>
+                   <DialogTitle>Ajouter une source de scraping</DialogTitle>
+                    <DialogDescription>Renseignez le nom et l'URL de la source</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
