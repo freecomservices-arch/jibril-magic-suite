@@ -121,9 +121,9 @@ export const api = {
   systemHealth: () => apiClient('/system/health'),
   systemLogs: () => apiClient('/system/logs'),
   settings: {
-    get: () => apiClient('/settings'),
+    get: () => apiClient('/settings/'),
     save: (data: Record<string, unknown>) =>
-      apiClient('/settings', { method: 'POST', body: JSON.stringify(data) }),
+      apiClient('/settings/', { method: 'POST', body: JSON.stringify(data) }),
   },
 };
 
