@@ -511,6 +511,15 @@ export default function Scraping() {
   const consoleRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const LOCAL_SOURCES_KEY = 'jibril_local_sources';
+
+  const saveLocalSources = (s: Source[]) => {
+    try { localStorage.setItem(LOCAL_SOURCES_KEY, JSON.stringify(s)); } catch {}
+  };
+  const loadLocalSources = (): Source[] => {
+    try { return JSON.parse(localStorage.getItem(LOCAL_SOURCES_KEY) || '[]'); } catch { return []; }
+  };
+
   // ─── Load data ──────────────────────────────────────────────────────────
   useEffect(() => {
     loadData();
@@ -520,10 +529,17 @@ export default function Scraping() {
     setLoading(true);
     try {
       const [sourcesData, leadsData] = await Promise.all([
-        api.sources.list().catch(() => []),
+        api.sources.list().catch(() => null),
         api.leads.list().catch(() => []),
       ]);
-      setSources(Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || []);
+      if (sourcesData) {
+        const apiSources = Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || [];
+        setSources(apiSources);
+        saveLocalSources(apiSources);
+      } else {
+        // Backend injoignable — charger depuis localStorage
+        setSources(loadLocalSources());
+      }
       const mappedLeads = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
         id: String(l.id),
         title: l.titre || l.title || '',
