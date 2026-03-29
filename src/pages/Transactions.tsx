@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { FileText, DollarSign, CheckCircle2, Clock, Plus, Building2, Users, GripVertical, ArrowRight, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import TransactionFormModal from '@/components/modals/CreateTransactionModal';
 import { StatCardSkeleton, KanbanCardSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
-import { api } from '@/lib/api';
+import { useTransactions, useTransactionMutations, useProperties, useContacts } from '@/hooks/useQueries';
 
 const saleStages = ['Offre', 'Compromis', 'Notaire', 'Signé'] as const;
 const locationStages = ['Visite', 'Bail', 'État des lieux', 'Quittances'] as const;
@@ -161,88 +161,21 @@ const StageProgress: React.FC<{ stages: readonly string[]; transactions: Transac
 );
 
 const Transactions: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: transactions = [], isLoading: txLoading } = useTransactions();
+  const { data: properties = [] } = useProperties();
+  const { data: contacts = [] } = useContacts();
+  const { createTransaction, updateTransaction, deleteTransaction } = useTransactionMutations();
+  const loading = txLoading;
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const draggedTxId = useRef<string | null>(null);
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [txData, propData, contactData] = await Promise.all([
-          api.transactions.list(),
-          api.properties.list(),
-          api.contacts.list(),
-        ]);
-
-        setTransactions((Array.isArray(txData) ? txData : []).map((t: any) => ({
-          id: String(t.id),
-          propertyId: String(t.property_id || t.propertyId || ''),
-          contactId: String(t.contact_id || t.contactId || ''),
-          type: t.type || 'Vente',
-          stage: t.stage || 'Offre',
-          amount: t.amount || 0,
-          commission: t.commission || 0,
-          agentId: String(t.agent_id || t.agentId || ''),
-          createdAt: t.created_at || t.createdAt || new Date().toISOString(),
-          documents: Array.isArray(t.documents) ? t.documents : [],
-        })));
-
-        setProperties((Array.isArray(propData) ? propData : []).map((p: any) => ({
-          id: String(p.id),
-          title: p.title || '',
-          type: p.type || 'Appartement',
-          transaction: p.transaction || 'Vente',
-          price: p.price || 0,
-          surface: p.surface || 0,
-          city: p.city || '',
-          quartier: p.quartier || '',
-          address: p.address || '',
-          description: p.description || '',
-          status: p.status || 'Disponible',
-          mandat: p.mandat || 'Simple',
-          agentId: String(p.agent_id || ''),
-          photos: Array.isArray(p.photos) ? p.photos : [],
-          createdAt: p.created_at || new Date().toISOString(),
-        })));
-
-        setContacts((Array.isArray(contactData) ? contactData : []).map((c: any) => ({
-          id: String(c.id),
-          name: c.name || '',
-          type: c.type || 'Acquéreur',
-          phone: c.phone || '',
-          email: c.email,
-          score: c.score ?? 50,
-          agentId: String(c.agent_id || ''),
-          createdAt: c.created_at || new Date().toISOString(),
-        })));
-      } catch (err) {
-        console.error('Erreur chargement transactions:', err);
-        toast.error('Impossible de charger les transactions');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, []);
-
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (deletingTx) {
-      try {
-        await api.transactions.delete(deletingTx.id);
-        setTransactions(prev => prev.filter(t => t.id !== deletingTx.id));
-        toast.success('Transaction supprimée');
-      } catch (err) {
-        console.error('Erreur suppression transaction:', err);
-        toast.error('Impossible de supprimer la transaction');
-      } finally {
-        setDeletingTx(null);
-      }
+      deleteTransaction.mutate(deletingTx.id);
+      setDeletingTx(null);
     }
   };
 
@@ -272,13 +205,9 @@ const Transactions: React.FC = () => {
     setDragOverStage(null);
     const txId = draggedTxId.current || e.dataTransfer.getData('text/plain');
     if (!txId) return;
-    setTransactions(prev => prev.map(t => t.id === txId ? { ...t, stage: newStage as Transaction['stage'] } : t));
-    api.transactions.update(txId, { stage: newStage }).catch((err) => {
-      console.error('Erreur mise à jour étape:', err);
-      toast.error('Impossible de mettre à jour l\'étape');
-    });
+    updateTransaction.mutate({ id: txId, data: { stage: newStage } });
     draggedTxId.current = null;
-  }, []);
+  }, [updateTransaction]);
 
   const openCreate = () => { setEditingTx(null); setModalOpen(true); };
   const openEdit = (tx: Transaction) => { setEditingTx(tx); setModalOpen(true); };
@@ -376,38 +305,11 @@ const Transactions: React.FC = () => {
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditingTx(null); }}
         initialData={editingTx}
-      onSubmit={async (data) => {
-          try {
-            if (editingTx) {
-              await api.transactions.update(editingTx.id, data);
-              setTransactions(prev => prev.map(t => t.id === editingTx.id ? {
-                ...t,
-                propertyId: data.propertyId,
-                contactId: data.contactId,
-                type: data.type,
-                stage: data.stage as Transaction['stage'],
-                amount: data.amount,
-                commission: data.commission,
-              } : t));
-            } else {
-              const created = await api.transactions.create(data);
-              const newTx: Transaction = {
-                id: String(created?.id || `t${Date.now()}`),
-                propertyId: data.propertyId,
-                contactId: data.contactId,
-                type: data.type,
-                stage: data.stage as Transaction['stage'],
-                amount: data.amount,
-                commission: data.commission,
-                agentId: '2',
-                createdAt: new Date().toISOString().split('T')[0],
-                documents: [],
-              };
-              setTransactions(prev => [...prev, newTx]);
-            }
-          } catch (err) {
-            console.error('Erreur sauvegarde transaction:', err);
-            toast.error('Impossible de sauvegarder la transaction');
+        onSubmit={(data) => {
+          if (editingTx) {
+            updateTransaction.mutate({ id: editingTx.id, data: data as Record<string, unknown> });
+          } else {
+            createTransaction.mutate(data as Record<string, unknown>);
           }
         }}
       />

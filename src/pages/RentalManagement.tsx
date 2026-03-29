@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { Home, FileText, DollarSign, AlertTriangle, CheckCircle2, Plus, Receipt, TrendingDown, TrendingUp, Edit, Trash2, Phone, Mail, Search, Filter, X, Eye, Download } from 'lucide-react';
 import StatCard from '@/components/StatCard';
-import { StatCardSkeleton, BailRowSkeleton, usePageLoading } from '@/components/Skeletons';
+import { StatCardSkeleton, BailRowSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import AvatarInitials from '@/components/AvatarInitials';
 import { formatMAD } from '@/data/mockData';
@@ -10,7 +10,7 @@ import CreateBailModal, { type Bail, type BailFormData } from '@/components/moda
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { useLeases, useLeaseMutations } from '@/hooks/useQueries';
 
 interface Quittance {
   id: string;
@@ -56,52 +56,15 @@ const statutColors: Record<string, string> = {
   'Résilié': 'bg-destructive/15 text-destructive',
 };
 
-const fallbackBaux: Bail[] = [
-  { id: 'b1', locataire: 'Samira Alaoui', bien: 'Apt Haut Founty', loyer: 8500, charges: 500, depot: 17000, debut: '2026-01-01', fin: '2027-01-01', statut: 'Actif', paiement: 'À jour', telephone: '+212 6 55 66 77 88', email: 'samira@email.ma' },
-  { id: 'b2', locataire: 'Omar Benjelloun', bien: 'Local Commercial Talborjt', loyer: 15000, charges: 1000, depot: 30000, debut: '2025-06-01', fin: '2026-06-01', statut: 'Actif', paiement: 'En retard', telephone: '+212 6 33 44 55 66', email: 'omar@email.ma' },
-  { id: 'b3', locataire: 'Marie Lefèvre', bien: 'Apt Marina', loyer: 12000, charges: 800, depot: 24000, debut: '2025-09-01', fin: '2026-09-01', statut: 'Actif', paiement: 'À jour', telephone: '+33 6 12 34 56 78', email: 'marie@email.fr' },
-];
-
-const mapLease = (l: any): Bail => ({
-  id: String(l.id),
-  locataire: l.locataire || l.tenant_name || '',
-  bien: l.bien || l.property_name || '',
-  loyer: l.loyer || l.rent || 0,
-  charges: l.charges || 0,
-  depot: l.depot || l.deposit || 0,
-  debut: l.debut || l.start_date || '',
-  fin: l.fin || l.end_date || '',
-  statut: l.statut || l.status || 'Actif',
-  paiement: l.paiement || l.payment_status || 'À jour',
-  telephone: l.telephone || l.phone || '',
-  email: l.email || '',
-});
-
 const RentalManagement: React.FC = () => {
-  const [baux, setBaux] = useState<Bail[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: baux = [], isLoading } = useLeases();
+  const { createLease, updateLease, deleteLease } = useLeaseMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBail, setEditingBail] = useState<Bail | null>(null);
   const [deletingBail, setDeletingBail] = useState<Bail | null>(null);
   const [detailBail, setDetailBail] = useState<Bail | null>(null);
   const [search, setSearch] = useState('');
   const [filterPaiement, setFilterPaiement] = useState('');
-
-  useEffect(() => {
-    const fetchLeases = async () => {
-      try {
-        const data = await api.leases.list();
-        const mapped = (Array.isArray(data) ? data : []).map(mapLease);
-        setBaux(mapped.length > 0 ? mapped : fallbackBaux);
-      } catch (err) {
-        console.error('Erreur chargement baux:', err);
-        setBaux(fallbackBaux);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLeases();
-  }, []);
 
   const filtered = useMemo(() => baux.filter(b => {
     if (search && !b.locataire.toLowerCase().includes(search.toLowerCase()) && !b.bien.toLowerCase().includes(search.toLowerCase())) return false;
@@ -120,49 +83,31 @@ const RentalManagement: React.FC = () => {
   const openCreate = () => { setEditingBail(null); setModalOpen(true); };
   const openEdit = (b: Bail) => { setEditingBail(b); setModalOpen(true); };
 
-  const handleSubmit = async (data: BailFormData) => {
-    try {
-      if (editingBail) {
-        await api.leases.update(editingBail.id, data);
-        setBaux(prev => prev.map(b => b.id === editingBail.id ? { ...b, ...data } : b));
-        toast.success('Bail modifié');
-      } else {
-        const created = await api.leases.create(data);
-        const newBail: Bail = { id: String(created?.id || `b${Date.now()}`), ...data };
-        setBaux(prev => [newBail, ...prev]);
-        toast.success('Bail créé');
-      }
-    } catch (err) {
-      console.error('Erreur sauvegarde bail:', err);
-      toast.error('Impossible de sauvegarder le bail');
+  const handleSubmit = (data: BailFormData) => {
+    if (editingBail) {
+      updateLease.mutate({ id: editingBail.id, data: data as Record<string, unknown> });
+      toast.success('Bail modifié');
+    } else {
+      createLease.mutate(data as Record<string, unknown>);
     }
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (deletingBail) {
-      try {
-        await api.leases.delete(deletingBail.id);
-        setBaux(prev => prev.filter(b => b.id !== deletingBail.id));
-        toast.success(`Bail de "${deletingBail.locataire}" supprimé`);
-      } catch (err) {
-        console.error('Erreur suppression bail:', err);
-        toast.error('Impossible de supprimer le bail');
-      } finally {
-        setDeletingBail(null);
-      }
+      deleteLease.mutate(deletingBail.id);
+      setDeletingBail(null);
     }
   };
 
-  const togglePaiement = async (id: string) => {
+  const togglePaiement = (id: string) => {
     const bail = baux.find(b => b.id === id);
     if (!bail) return;
     const next = bail.paiement === 'À jour' ? 'En retard' : bail.paiement === 'En retard' ? 'Impayé' : 'À jour';
-    setBaux(prev => prev.map(b => b.id !== id ? b : { ...b, paiement: next as Bail['paiement'] }));
+    updateLease.mutate({ id, data: { paiement: next } });
     toast.success('Statut de paiement mis à jour');
-    api.leases.update(id, { paiement: next }).catch(err => console.error('Erreur update paiement:', err));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <PageTransition>
         <div className="space-y-6">
@@ -274,20 +219,13 @@ const RentalManagement: React.FC = () => {
       </div>
     </div>
 
-    <CreateBailModal
-      open={modalOpen}
-      onClose={() => { setModalOpen(false); setEditingBail(null); }}
-      initialData={editingBail}
-      onSubmit={handleSubmit}
-    />
+    <CreateBailModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingBail(null); }} initialData={editingBail} onSubmit={handleSubmit} />
 
     <AlertDialog open={!!deletingBail} onOpenChange={(open) => !open && setDeletingBail(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Supprimer ce bail ?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Supprimer le bail de « {deletingBail?.locataire} » pour « {deletingBail?.bien} » ? Cette action est irréversible.
-          </AlertDialogDescription>
+          <AlertDialogDescription>Supprimer le bail de « {deletingBail?.locataire} » pour « {deletingBail?.bien} » ? Cette action est irréversible.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
@@ -13,7 +13,7 @@ import EmptyState from '@/components/EmptyState';
 import ContactFormModal from '@/components/modals/CreateContactModal';
 import { ContactRowSkeleton, StatCardSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
-import { api } from '@/lib/api';
+import { useContacts, useContactMutations } from '@/hooks/useQueries';
 
 const typeColors: Record<string, string> = {
   'Acquéreur': 'bg-primary/15 text-primary',
@@ -80,8 +80,8 @@ const ContactRow: React.FC<{ contact: Contact; onEdit: () => void; onDelete: () 
 const CONTACTS_PER_PAGE = 15;
 
 const Contacts: React.FC = () => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: contacts = [], isLoading } = useContacts();
+  const { createContact, updateContact, deleteContact } = useContactMutations();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -89,49 +89,10 @@ const Contacts: React.FC = () => {
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        const data = await api.contacts.list();
-        const mapped: Contact[] = (Array.isArray(data) ? data : []).map((c: any) => ({
-          id: String(c.id),
-          name: c.name || '',
-          type: c.type || 'Acquéreur',
-          phone: c.phone || '',
-          email: c.email || undefined,
-          budget: c.budget || undefined,
-          exigences: c.exigences || c.requirements || undefined,
-          score: c.score ?? 50,
-          agentId: String(c.agent_id || c.agentId || ''),
-          lockedBy: c.locked_by || c.lockedBy || undefined,
-          lockedUntil: c.locked_until || c.lockedUntil || undefined,
-          createdAt: c.created_at || c.createdAt || new Date().toISOString(),
-          lastContact: c.last_contact || c.lastContact || undefined,
-          notes: c.notes || undefined,
-        }));
-        setContacts(mapped);
-      } catch (err) {
-        console.error('Erreur chargement contacts:', err);
-        toast.error('Impossible de charger les contacts');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchContacts();
-  }, []);
-
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (deletingContact) {
-      try {
-        await api.contacts.delete(deletingContact.id);
-        setContacts(prev => prev.filter(c => c.id !== deletingContact.id));
-        toast.success(`"${deletingContact.name}" supprimé`);
-      } catch (err) {
-        console.error('Erreur suppression contact:', err);
-        toast.error('Impossible de supprimer le contact');
-      } finally {
-        setDeletingContact(null);
-      }
+      deleteContact.mutate(deletingContact.id);
+      setDeletingContact(null);
     }
   };
 
@@ -159,7 +120,7 @@ const Contacts: React.FC = () => {
   const openCreate = () => { setEditingContact(null); setModalOpen(true); };
   const openEdit = (c: Contact) => { setEditingContact(c); setModalOpen(true); };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <PageTransition>
         <div className="space-y-5">
@@ -265,38 +226,11 @@ const Contacts: React.FC = () => {
       open={modalOpen}
       onClose={() => { setModalOpen(false); setEditingContact(null); }}
       initialData={editingContact}
-      onSubmit={async (data) => {
-        try {
-          if (editingContact) {
-            await api.contacts.update(editingContact.id, data);
-            setContacts(prev => prev.map(c => c.id === editingContact.id ? {
-              ...c,
-              name: data.name,
-              type: data.type,
-              phone: data.phone,
-              email: data.email || undefined,
-              budget: typeof data.budget === 'number' ? data.budget : undefined,
-              exigences: data.exigences || undefined,
-              notes: data.notes || undefined,
-              score: typeof data.score === 'number' ? data.score : c.score,
-            } : c));
-          } else {
-            const created = await api.contacts.create(data);
-            const newContact: Contact = {
-              id: String(created?.id || `c${Date.now()}`),
-              name: data.name, type: data.type, phone: data.phone,
-              email: data.email || undefined,
-              budget: typeof data.budget === 'number' ? data.budget : undefined,
-              exigences: data.exigences || undefined,
-              notes: data.notes || undefined,
-              score: typeof data.score === 'number' ? data.score : 50,
-              agentId: '2', createdAt: new Date().toISOString().split('T')[0],
-            };
-            setContacts(prev => [newContact, ...prev]);
-          }
-        } catch (err) {
-          console.error('Erreur sauvegarde contact:', err);
-          toast.error('Impossible de sauvegarder le contact');
+      onSubmit={(data) => {
+        if (editingContact) {
+          updateContact.mutate({ id: editingContact.id, data: data as Record<string, unknown> });
+        } else {
+          createContact.mutate(data as Record<string, unknown>);
         }
       }}
     />

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { PenTool, FileText, Shield, Download, Plus, FilePlus, Eye, Send, Lock, Upload, Edit, Trash2 } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
 import FileUpload from '@/components/FileUpload';
 import SignaturePad from '@/components/SignaturePad';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDocuments, useDocumentMutations } from '@/hooks/useQueries';
 
 const templates = [
   { id: '1', name: 'Mandat de Vente', category: 'Mandats', icon: FileText, description: 'Mandat simple ou exclusif conforme au droit marocain' },
@@ -16,21 +16,6 @@ const templates = [
   { id: '5', name: 'État des Lieux', category: 'Location', icon: Eye, description: 'État des lieux d\'entrée et de sortie numérique' },
   { id: '6', name: 'Quittance de Loyer', category: 'Location', icon: FileText, description: 'Quittance mensuelle auto-générée' },
 ];
-
-const fallbackDocs = [
-  { id: '1', name: 'Mandat Exclusif — Villa Marina', date: '22/02/2026', status: 'Signé', signedBy: 'Admin Jibril' },
-  { id: '2', name: 'Bail — Apt Haut Founty', date: '10/02/2026', status: 'En attente', signedBy: '' },
-  { id: '3', name: 'Compromis — Apt Founty', date: '15/02/2026', status: 'Signé', signedBy: 'Mohammed El Fassi' },
-  { id: '4', name: 'Quittance Février — Studio Talborjt', date: '01/02/2026', status: 'Signé', signedBy: 'Samira Alaoui' },
-];
-
-interface Doc {
-  id: string;
-  name: string;
-  date: string;
-  status: string;
-  signedBy: string;
-}
 
 const categoryColors: Record<string, string> = {
   'Mandats': 'bg-primary/10 text-primary',
@@ -42,48 +27,19 @@ const Documents: React.FC = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [showSignature, setShowSignature] = useState(false);
   const [signedDataUrl, setSignedDataUrl] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<Doc[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: documents = [], isLoading } = useDocuments();
+  const { deleteDocument } = useDocumentMutations();
 
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const data = await api.documents.list();
-        const mapped: Doc[] = (Array.isArray(data) ? data : []).map((d: any) => ({
-          id: String(d.id),
-          name: d.name || d.title || '',
-          date: d.date || (d.created_at ? new Date(d.created_at).toLocaleDateString('fr-FR') : ''),
-          status: d.status || 'En attente',
-          signedBy: d.signed_by || d.signedBy || '',
-        }));
-        setDocuments(mapped.length > 0 ? mapped : fallbackDocs);
-      } catch (err) {
-        console.error('Erreur chargement documents:', err);
-        setDocuments(fallbackDocs);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDocuments();
-  }, []);
-
-  const handleSign = async (dataUrl: string) => {
+  const handleSign = (dataUrl: string) => {
     setSignedDataUrl(dataUrl);
     toast.success('Signature enregistrée');
   };
 
-  const handleDelete = async (doc: Doc) => {
-    try {
-      await api.documents.delete(doc.id);
-      setDocuments(prev => prev.filter(d => d.id !== doc.id));
-      toast.success(`"${doc.name}" supprimé`);
-    } catch (err) {
-      console.error('Erreur suppression document:', err);
-      toast.error('Impossible de supprimer le document');
-    }
+  const handleDelete = (doc: { id: string; name: string }) => {
+    deleteDocument.mutate(doc.id);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <PageTransition>
         <div className="space-y-6">
@@ -178,10 +134,7 @@ const Documents: React.FC = () => {
           </button>
         </div>
         {showSignature ? (
-          <SignaturePad
-            onSave={handleSign}
-            label="Dessinez votre signature ci-dessous"
-          />
+          <SignaturePad onSave={handleSign} label="Dessinez votre signature ci-dessous" />
         ) : (
           <div
             onClick={() => setShowSignature(true)}
