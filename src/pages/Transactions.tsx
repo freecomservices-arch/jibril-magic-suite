@@ -231,11 +231,18 @@ const Transactions: React.FC = () => {
     fetchAll();
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingTx) {
-      setTransactions(prev => prev.filter(t => t.id !== deletingTx.id));
-      toast.success('Transaction supprimée');
-      setDeletingTx(null);
+      try {
+        await api.transactions.delete(deletingTx.id);
+        setTransactions(prev => prev.filter(t => t.id !== deletingTx.id));
+        toast.success('Transaction supprimée');
+      } catch (err) {
+        console.error('Erreur suppression transaction:', err);
+        toast.error('Impossible de supprimer la transaction');
+      } finally {
+        setDeletingTx(null);
+      }
     }
   };
 
@@ -266,6 +273,10 @@ const Transactions: React.FC = () => {
     const txId = draggedTxId.current || e.dataTransfer.getData('text/plain');
     if (!txId) return;
     setTransactions(prev => prev.map(t => t.id === txId ? { ...t, stage: newStage as Transaction['stage'] } : t));
+    api.transactions.update(txId, { stage: newStage }).catch((err) => {
+      console.error('Erreur mise à jour étape:', err);
+      toast.error('Impossible de mettre à jour l\'étape');
+    });
     draggedTxId.current = null;
   }, []);
 
@@ -365,31 +376,38 @@ const Transactions: React.FC = () => {
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditingTx(null); }}
         initialData={editingTx}
-        onSubmit={(data) => {
-          if (editingTx) {
-            setTransactions(prev => prev.map(t => t.id === editingTx.id ? {
-              ...t,
-              propertyId: data.propertyId,
-              contactId: data.contactId,
-              type: data.type,
-              stage: data.stage as Transaction['stage'],
-              amount: data.amount,
-              commission: data.commission,
-            } : t));
-          } else {
-            const newTx: Transaction = {
-              id: `t${Date.now()}`,
-              propertyId: data.propertyId,
-              contactId: data.contactId,
-              type: data.type,
-              stage: data.stage as Transaction['stage'],
-              amount: data.amount,
-              commission: data.commission,
-              agentId: '2',
-              createdAt: new Date().toISOString().split('T')[0],
-              documents: [],
-            };
-            setTransactions(prev => [...prev, newTx]);
+      onSubmit={async (data) => {
+          try {
+            if (editingTx) {
+              await api.transactions.update(editingTx.id, data);
+              setTransactions(prev => prev.map(t => t.id === editingTx.id ? {
+                ...t,
+                propertyId: data.propertyId,
+                contactId: data.contactId,
+                type: data.type,
+                stage: data.stage as Transaction['stage'],
+                amount: data.amount,
+                commission: data.commission,
+              } : t));
+            } else {
+              const created = await api.transactions.create(data);
+              const newTx: Transaction = {
+                id: String(created?.id || `t${Date.now()}`),
+                propertyId: data.propertyId,
+                contactId: data.contactId,
+                type: data.type,
+                stage: data.stage as Transaction['stage'],
+                amount: data.amount,
+                commission: data.commission,
+                agentId: '2',
+                createdAt: new Date().toISOString().split('T')[0],
+                documents: [],
+              };
+              setTransactions(prev => [...prev, newTx]);
+            }
+          } catch (err) {
+            console.error('Erreur sauvegarde transaction:', err);
+            toast.error('Impossible de sauvegarder la transaction');
           }
         }}
       />

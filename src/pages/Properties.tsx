@@ -230,11 +230,18 @@ const Properties: React.FC = () => {
     fetchProperties();
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingProperty) {
-      setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
-      toast.success(`"${deletingProperty.title}" supprimé`);
-      setDeletingProperty(null);
+      try {
+        await api.properties.delete(deletingProperty.id);
+        setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
+        toast.success(`"${deletingProperty.title}" supprimé`);
+      } catch (err) {
+        console.error('Erreur suppression bien:', err);
+        toast.error('Impossible de supprimer le bien');
+      } finally {
+        setDeletingProperty(null);
+      }
     }
   };
 
@@ -367,36 +374,44 @@ const Properties: React.FC = () => {
       open={modalOpen}
       onClose={() => { setModalOpen(false); setEditingProperty(null); }}
       initialData={editingProperty}
-      onSubmit={(data) => {
-        if (editingProperty) {
-          setProperties(prev => prev.map(p => p.id === editingProperty.id ? {
-            ...p, ...data,
-            rooms: typeof data.rooms === 'number' ? data.rooms : p.rooms,
-            bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : p.bedrooms,
-            bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : p.bathrooms,
-          } : p));
-        } else {
-          const newProperty: Property = {
-            id: `p${Date.now()}`,
-            title: data.title,
-            type: data.type,
-            transaction: data.transaction,
-            price: data.price,
-            surface: data.surface,
-            rooms: typeof data.rooms === 'number' ? data.rooms : undefined,
-            bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : undefined,
-            bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : undefined,
-            city: data.city,
-            quartier: data.quartier,
-            address: data.address,
-            description: data.description,
-            status: data.status,
-            mandat: data.mandat,
-            agentId: '2',
-            photos: [],
-            createdAt: new Date().toISOString().split('T')[0],
-          };
-          setProperties(prev => [newProperty, ...prev]);
+      onSubmit={async (data) => {
+        try {
+          if (editingProperty) {
+            const updated = await api.properties.update(editingProperty.id, data);
+            setProperties(prev => prev.map(p => p.id === editingProperty.id ? {
+              ...p, ...data,
+              ...(updated?.id ? { id: String(updated.id) } : {}),
+              rooms: typeof data.rooms === 'number' ? data.rooms : p.rooms,
+              bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : p.bedrooms,
+              bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : p.bathrooms,
+            } : p));
+          } else {
+            const created = await api.properties.create(data);
+            const newProperty: Property = {
+              id: String(created?.id || `p${Date.now()}`),
+              title: data.title,
+              type: data.type,
+              transaction: data.transaction,
+              price: data.price,
+              surface: data.surface,
+              rooms: typeof data.rooms === 'number' ? data.rooms : undefined,
+              bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : undefined,
+              bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : undefined,
+              city: data.city,
+              quartier: data.quartier,
+              address: data.address,
+              description: data.description,
+              status: data.status,
+              mandat: data.mandat,
+              agentId: '2',
+              photos: [],
+              createdAt: new Date().toISOString().split('T')[0],
+            };
+            setProperties(prev => [newProperty, ...prev]);
+          }
+        } catch (err) {
+          console.error('Erreur sauvegarde bien:', err);
+          toast.error('Impossible de sauvegarder le bien');
         }
       }}
     />
