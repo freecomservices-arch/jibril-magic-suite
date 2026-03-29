@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Users, Search, Plus, Phone, Mail, MessageSquare, Star,
-  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit, Trash2, ChevronLeft, ChevronRight
+  Lock, Unlock, UserCheck, UserPlus, Filter, ArrowUpRight, Edit, Trash2, ChevronLeft, ChevronRight,
+  Upload, FileSpreadsheet
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
