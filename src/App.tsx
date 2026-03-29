@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,21 +9,32 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Properties from "@/pages/Properties";
-import Contacts from "@/pages/Contacts";
-import Transactions from "@/pages/Transactions";
-import RentalManagement from "@/pages/RentalManagement";
-import Documents from "@/pages/Documents";
-import AIVision from "@/pages/AIVision";
-import Scraping from "@/pages/Scraping";
-import Communication from "@/pages/Communication";
-import Statistics from "@/pages/Statistics";
-import Administration from "@/pages/Administration";
-import SettingsPage from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
+
+// Lazy-loaded pages — each gets its own chunk
+const Dashboard = React.lazy(() => import("@/pages/Dashboard"));
+const Properties = React.lazy(() => import("@/pages/Properties"));
+const Contacts = React.lazy(() => import("@/pages/Contacts"));
+const Transactions = React.lazy(() => import("@/pages/Transactions"));
+const RentalManagement = React.lazy(() => import("@/pages/RentalManagement"));
+const Documents = React.lazy(() => import("@/pages/Documents"));
+const AIVision = React.lazy(() => import("@/pages/AIVision"));
+const Scraping = React.lazy(() => import("@/pages/Scraping"));
+const Communication = React.lazy(() => import("@/pages/Communication"));
+const Statistics = React.lazy(() => import("@/pages/Statistics"));
+const Administration = React.lazy(() => import("@/pages/Administration"));
+const SettingsPage = React.lazy(() => import("@/pages/Settings"));
+const NotFound = React.lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="flex h-screen items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <p className="text-sm text-muted-foreground">Chargement…</p>
+    </div>
+  </div>
+);
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ children, adminOnly }) => {
   const { user, isAdmin } = useAuth();
@@ -66,7 +78,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppRoutes />
+            <Suspense fallback={<PageLoader />}>
+              <AppRoutes />
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
