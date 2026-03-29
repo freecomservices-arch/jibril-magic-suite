@@ -511,6 +511,15 @@ export default function Scraping() {
   const consoleRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const LOCAL_SOURCES_KEY = 'jibril_local_sources';
+
+  const saveLocalSources = (s: Source[]) => {
+    try { localStorage.setItem(LOCAL_SOURCES_KEY, JSON.stringify(s)); } catch {}
+  };
+  const loadLocalSources = (): Source[] => {
+    try { return JSON.parse(localStorage.getItem(LOCAL_SOURCES_KEY) || '[]'); } catch { return []; }
+  };
+
   // ─── Load data ──────────────────────────────────────────────────────────
   useEffect(() => {
     loadData();
@@ -520,10 +529,17 @@ export default function Scraping() {
     setLoading(true);
     try {
       const [sourcesData, leadsData] = await Promise.all([
-        api.sources.list().catch(() => []),
+        api.sources.list().catch(() => null),
         api.leads.list().catch(() => []),
       ]);
-      setSources(Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || []);
+      if (sourcesData) {
+        const apiSources = Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || [];
+        setSources(apiSources);
+        saveLocalSources(apiSources);
+      } else {
+        // Backend injoignable — charger depuis localStorage
+        setSources(loadLocalSources());
+      }
       const mappedLeads = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
         id: String(l.id),
         title: l.titre || l.title || '',
@@ -568,11 +584,18 @@ export default function Scraping() {
     };
     try {
       const created = await api.sources.create({ name, url, active: true });
-      setSources(prev => [...prev, { ...localSource, ...created }]);
+      setSources(prev => {
+        const updated = [...prev, { ...localSource, ...created }];
+        saveLocalSources(updated);
+        return updated;
+      });
       toast({ title: 'Source ajoutée', description: `"${name}" a été ajoutée` });
     } catch {
-      // Fallback local quand le backend est injoignable
-      setSources(prev => [...prev, localSource]);
+      setSources(prev => {
+        const updated = [...prev, localSource];
+        saveLocalSources(updated);
+        return updated;
+      });
       toast({ title: 'Source ajoutée (local)', description: `"${name}" ajoutée localement` });
     }
     setNewSource({ name: '', url: '' });
@@ -583,22 +606,26 @@ export default function Scraping() {
   const handleDeleteSource = async (id: string) => {
     try {
       await api.sources.delete(id);
-      setSources(prev => prev.filter(s => s.id !== id));
-      toast({ title: 'Source supprimée' });
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer', variant: 'destructive' });
-    }
+    } catch { /* fallback local */ }
+    setSources(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      saveLocalSources(updated);
+      return updated;
+    });
+    toast({ title: 'Source supprimée' });
   };
 
   // ─── Toggle source active/inactive ─────────────────────────────────────
   const handleToggleSourceActive = async (source: Source) => {
     try {
       await api.sources.update(source.id, { active: !source.active });
-      setSources(prev => prev.map(s => s.id === source.id ? { ...s, active: !s.active } : s));
-      toast({ title: source.active ? 'Source désactivée' : 'Source activée' });
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de modifier la source', variant: 'destructive' });
-    }
+    } catch { /* fallback local */ }
+    setSources(prev => {
+      const updated = prev.map(s => s.id === source.id ? { ...s, active: !s.active } : s);
+      saveLocalSources(updated);
+      return updated;
+    });
+    toast({ title: source.active ? 'Source désactivée' : 'Source activée' });
   };
 
   // ─── Console log helper ─────────────────────────────────────────────────
