@@ -606,22 +606,26 @@ export default function Scraping() {
   const handleDeleteSource = async (id: string) => {
     try {
       await api.sources.delete(id);
-      setSources(prev => prev.filter(s => s.id !== id));
-      toast({ title: 'Source supprimée' });
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de supprimer', variant: 'destructive' });
-    }
+    } catch { /* fallback local */ }
+    setSources(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      saveLocalSources(updated);
+      return updated;
+    });
+    toast({ title: 'Source supprimée' });
   };
 
   // ─── Toggle source active/inactive ─────────────────────────────────────
   const handleToggleSourceActive = async (source: Source) => {
     try {
       await api.sources.update(source.id, { active: !source.active });
-      setSources(prev => prev.map(s => s.id === source.id ? { ...s, active: !s.active } : s));
-      toast({ title: source.active ? 'Source désactivée' : 'Source activée' });
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible de modifier la source', variant: 'destructive' });
-    }
+    } catch { /* fallback local */ }
+    setSources(prev => {
+      const updated = prev.map(s => s.id === source.id ? { ...s, active: !s.active } : s);
+      saveLocalSources(updated);
+      return updated;
+    });
+    toast({ title: source.active ? 'Source désactivée' : 'Source activée' });
   };
 
   // ─── Console log helper ─────────────────────────────────────────────────
