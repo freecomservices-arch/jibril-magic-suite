@@ -230,11 +230,18 @@ const Properties: React.FC = () => {
     fetchProperties();
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingProperty) {
-      setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
-      toast.success(`"${deletingProperty.title}" supprimé`);
-      setDeletingProperty(null);
+      try {
+        await api.properties.delete(deletingProperty.id);
+        setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
+        toast.success(`"${deletingProperty.title}" supprimé`);
+      } catch (err) {
+        console.error('Erreur suppression bien:', err);
+        toast.error('Impossible de supprimer le bien');
+      } finally {
+        setDeletingProperty(null);
+      }
     }
   };
 
