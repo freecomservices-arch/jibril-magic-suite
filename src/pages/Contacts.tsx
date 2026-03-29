@@ -120,11 +120,18 @@ const Contacts: React.FC = () => {
     fetchContacts();
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingContact) {
-      setContacts(prev => prev.filter(c => c.id !== deletingContact.id));
-      toast.success(`"${deletingContact.name}" supprimé`);
-      setDeletingContact(null);
+      try {
+        await api.contacts.delete(deletingContact.id);
+        setContacts(prev => prev.filter(c => c.id !== deletingContact.id));
+        toast.success(`"${deletingContact.name}" supprimé`);
+      } catch (err) {
+        console.error('Erreur suppression contact:', err);
+        toast.error('Impossible de supprimer le contact');
+      } finally {
+        setDeletingContact(null);
+      }
     }
   };
 
