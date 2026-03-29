@@ -273,6 +273,10 @@ const Transactions: React.FC = () => {
     const txId = draggedTxId.current || e.dataTransfer.getData('text/plain');
     if (!txId) return;
     setTransactions(prev => prev.map(t => t.id === txId ? { ...t, stage: newStage as Transaction['stage'] } : t));
+    api.transactions.update(txId, { stage: newStage }).catch((err) => {
+      console.error('Erreur mise à jour étape:', err);
+      toast.error('Impossible de mettre à jour l\'étape');
+    });
     draggedTxId.current = null;
   }, []);
 
