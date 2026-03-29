@@ -3,11 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Layout from "@/components/Layout";
+import ScrollToTop from "@/components/ScrollToTop";
+import ProtectedLayout from "@/components/ProtectedLayout";
+import AdminRoute from "@/components/AdminRoute";
 import Login from "@/pages/Login";
 
 // Lazy-loaded pages — each gets its own chunk
@@ -27,7 +28,7 @@ const NotFound = React.lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
-const PageLoader = () => (
+const FullPageLoader = () => (
   <div className="flex h-screen items-center justify-center bg-background">
     <div className="flex flex-col items-center gap-3">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -36,37 +37,38 @@ const PageLoader = () => (
   </div>
 );
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ children, adminOnly }) => {
-  const { user, isAdmin } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
-  return <Layout>{children}</Layout>;
-};
-
 const AppRoutes = () => {
   const { user } = useAuth();
-  const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+    <Routes>
+      {/* Public */}
+      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+
+      {/* Protected — Layout rendered ONCE, pages swap inside via <Outlet> */}
+      <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/biens" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
-        <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
-        <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-        <Route path="/gestion-locative" element={<ProtectedRoute><RentalManagement /></ProtectedRoute>} />
-        <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-        <Route path="/ia-vision" element={<ProtectedRoute><AIVision /></ProtectedRoute>} />
-        <Route path="/scraping" element={<ProtectedRoute><Scraping /></ProtectedRoute>} />
-        <Route path="/communication" element={<ProtectedRoute><Communication /></ProtectedRoute>} />
-        <Route path="/statistiques" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
-        <Route path="/administration" element={<ProtectedRoute adminOnly><Administration /></ProtectedRoute>} />
-        <Route path="/parametres" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AnimatePresence>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/biens" element={<Properties />} />
+        <Route path="/contacts" element={<Contacts />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/gestion-locative" element={<RentalManagement />} />
+        <Route path="/documents" element={<Documents />} />
+        <Route path="/ia-vision" element={<AIVision />} />
+        <Route path="/scraping" element={<Scraping />} />
+        <Route path="/communication" element={<Communication />} />
+        <Route path="/statistiques" element={<Statistics />} />
+        <Route path="/parametres" element={<SettingsPage />} />
+
+        {/* Admin only */}
+        <Route element={<AdminRoute />}>
+          <Route path="/administration" element={<Administration />} />
+        </Route>
+      </Route>
+
+      {/* 404 */}
+      <Route path="*" element={<Suspense fallback={<FullPageLoader />}><NotFound /></Suspense>} />
+    </Routes>
   );
 };
 
@@ -78,9 +80,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <AppRoutes />
-            </Suspense>
+            <ScrollToTop />
+            <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
