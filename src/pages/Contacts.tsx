@@ -186,9 +186,15 @@ const Contacts: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{stats.total} contacts • {stats.acquereurs} acquéreurs • {stats.vendeurs} vendeurs</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
-          <UserPlus className="h-4 w-4" /> Nouveau contact
-        </button>
+        <div className="flex items-center gap-2">
+          <input type="file" ref={csvInputRef} accept=".csv" className="hidden" onChange={handleCsvImport} />
+          <button onClick={() => csvInputRef.current?.click()} className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
+            <FileSpreadsheet className="h-4 w-4" /> Importer CSV
+          </button>
+          <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+            <UserPlus className="h-4 w-4" /> Nouveau contact
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
