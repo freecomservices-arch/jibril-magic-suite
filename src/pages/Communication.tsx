@@ -3,6 +3,7 @@ import PageTransition from '@/components/PageTransition';
 import { MessageSquare, Send, Phone, Video, Clock, Users, Building2, Plus, Search, Paperclip, Smile, Image, Mic, Check, CheckCheck, ArrowDown } from 'lucide-react';
 import AvatarInitials from '@/components/AvatarInitials';
 import StatCard from '@/components/StatCard';
+import ServiceStatusBanner from '@/components/ServiceStatusBanner';
 
 const conversations = [
   { id: '1', name: 'Mohammed El Fassi', lastMessage: 'Bonjour, je souhaite visiter l\'appartement Founty', time: '10:30', unread: 2, phone: '+212 6 12 34 56 78', online: true },
@@ -113,6 +114,9 @@ const Communication: React.FC = () => {
   return (
     <PageTransition>
       <div className="space-y-6">
+        {/* Status LEDs */}
+        <ServiceStatusBanner variant="communication" />
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
