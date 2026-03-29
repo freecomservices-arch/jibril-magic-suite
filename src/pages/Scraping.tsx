@@ -500,6 +500,13 @@ export default function Scraping() {
   const [newSource, setNewSource] = useState({ name: '', url: '' });
   const [logsOpen, setLogsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'detail'>('grid');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const LEADS_PER_PAGE = 12;
 
   const consoleRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
