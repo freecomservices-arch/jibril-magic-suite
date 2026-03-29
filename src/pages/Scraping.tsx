@@ -1283,6 +1283,96 @@ export default function Scraping() {
           )}
         </div>
       </div>
+
+      {/* ─── Lead Detail Modal ─────────────────────────────────────── */}
+      <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          {selectedLead && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg">{selectedLead.title || 'Sans titre'}</DialogTitle>
+                <DialogDescription className="flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[selectedLead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
+                    {sourceIcons[selectedLead.source.toLowerCase()] || '🌐'} {selectedLead.source}
+                  </span>
+                  <span className="text-xs">Scrapé le {new Date(selectedLead.created_at).toLocaleDateString('fr-FR')}</span>
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Photos gallery */}
+              {selectedLead.photos && selectedLead.photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {selectedLead.photos.map((photo, i) => (
+                    <div key={i} className="aspect-video rounded-lg overflow-hidden bg-muted/30">
+                      <img src={photo} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Prix</p>
+                    <p className="font-heading text-xl font-bold text-primary">{formatPrice(selectedLead.price)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Localisation</p>
+                    <p className="text-sm text-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {selectedLead.quartier ? `${selectedLead.quartier}, ` : ''}{selectedLead.city || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Type de bien</p>
+                    <p className="text-sm text-foreground">{selectedLead.type || '—'}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {selectedLead.surface ? (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Surface</p>
+                      <p className="text-sm text-foreground">{selectedLead.surface} m²</p>
+                    </div>
+                  ) : null}
+                  {selectedLead.bedrooms ? (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Chambres</p>
+                      <p className="text-sm text-foreground">{selectedLead.bedrooms}</p>
+                    </div>
+                  ) : null}
+                  {selectedLead.phone ? (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Téléphone</p>
+                      <a href={`tel:${selectedLead.phone}`} className="text-sm text-primary hover:underline flex items-center gap-1"><Phone className="h-3 w-3" /> {selectedLead.phone}</a>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {selectedLead.description && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
+                  <p className="text-sm text-foreground whitespace-pre-line">{selectedLead.description}</p>
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-2 pt-4 border-t border-border">
+                {selectedLead.url && (
+                  <a href={selectedLead.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+                    <ExternalLink className="h-4 w-4" /> Voir l'annonce originale
+                  </a>
+                )}
+                {selectedLead.phone && (
+                  <a href={`https://wa.me/${selectedLead.phone.replace(/\s+/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg bg-success px-4 py-2 text-sm font-semibold text-success-foreground hover:opacity-90 transition-opacity">
+                    <MessageSquare className="h-4 w-4" /> WhatsApp
+                  </a>
+                )}
+                <button onClick={() => { handleDeleteLead(selectedLead.id); setSelectedLead(null); }} className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/20 transition-colors">
+                  <Trash2 className="h-4 w-4" /> Supprimer
+                </button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }
