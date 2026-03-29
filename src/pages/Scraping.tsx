@@ -208,13 +208,102 @@ interface SystemSettings {
   economy_mode: boolean;
 }
 
+interface ApiStatusEntry {
+  name: string;
+  provider: string;
+  configured: boolean;
+  connected: boolean;
+  has_credit: boolean;
+  balance: string;
+  models: string[];
+}
+
+function ApiStatusSection() {
+  const [apis, setApis] = useState<ApiStatusEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStatus = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true); else setLoading(true);
+    try {
+      const data = await api.settings.apiStatus();
+      setApis(data?.apis || []);
+    } catch {
+      setApis([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  const statusBadge = (entry: ApiStatusEntry) => {
+    if (!entry.configured) return <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px]">Non configuré</Badge>;
+    if (entry.connected) return <Badge className="bg-green-500/15 text-green-600 border-green-500/20 text-[10px]">Connecté</Badge>;
+    return <Badge variant="destructive" className="text-[10px]">Déconnecté</Badge>;
+  };
+
+  const creditBadge = (entry: ApiStatusEntry) => {
+    if (entry.has_credit) return <Badge className="bg-green-500/15 text-green-600 border-green-500/20 text-[10px]">{entry.balance}</Badge>;
+    return <Badge variant="destructive" className="text-[10px]">{entry.balance || '$0.00'} — Épuisé</Badge>;
+  };
+
+  if (loading) return <div className="py-6 text-center text-sm text-muted-foreground">Chargement des API…</div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" /> État des API
+        </h3>
+        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => fetchStatus(true)} disabled={refreshing}>
+          <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} /> Rafraîchir
+        </Button>
+      </div>
+      {apis.length === 0 ? (
+        <div className="text-center py-6 text-muted-foreground text-sm">Aucune API détectée</div>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">API</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Statut</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Crédit</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Modèles</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {apis.map((entry, i) => (
+                <tr key={i} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-3 py-2.5 font-medium text-foreground">{entry.name}</td>
+                  <td className="px-3 py-2.5">{statusBadge(entry)}</td>
+                  <td className="px-3 py-2.5">{creditBadge(entry)}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex flex-wrap gap-1">
+                      {entry.models.map((m, j) => (
+                        <span key={j} className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{m}</span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IASettingsModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [settings, setSettings] = useState<SystemSettings>({
     agents: [],
     vision_timeout: 30,
     economy_mode: false,
   });
-  const [activeTab, setActiveTab] = useState<'agents' | 'system'>('agents');
+  const [activeTab, setActiveTab] = useState<'api-status' | 'agents' | 'system'>('api-status');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();

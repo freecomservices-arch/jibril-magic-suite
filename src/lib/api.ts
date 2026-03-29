@@ -170,6 +170,7 @@ export const api = {
     get: () => apiClient('/settings/'),
     save: (data: Record<string, unknown>) =>
       apiClient('/settings/', { method: 'POST', body: JSON.stringify(data) }),
+    apiStatus: () => apiClient('/settings/api-status/'),
   },
 
   // Users (Administration)
