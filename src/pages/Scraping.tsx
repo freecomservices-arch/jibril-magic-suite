@@ -23,6 +23,8 @@ import {
   Terminal, ChevronDown, ChevronUp, Eye, Plus,
   Database, Zap, Timer, Activity, Monitor, Brain,
   AlertTriangle, Settings, Download, Shield, Key,
+  Grid3X3, List, LayoutList, Camera, Bed, Bath, Maximize,
+  Building2, Home, MessageSquare, Edit, ChevronLeft, ChevronRight, Image, X,
 } from 'lucide-react';
 
 // ─── System Health Banner ────────────────────────────────────────────────────
