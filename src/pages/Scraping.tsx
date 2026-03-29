@@ -410,6 +410,8 @@ function IASettingsModal({ open, onOpenChange }: { open: boolean; onOpenChange: 
           <div className="py-12 text-center text-muted-foreground text-sm">Chargement...</div>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-4 py-2">
+            {/* Tab: État des API */}
+            {activeTab === 'api-status' && <ApiStatusSection />}
             {/* Tab: Agents IA */}
             {activeTab === 'agents' && (
               <div className="space-y-3">
