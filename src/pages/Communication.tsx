@@ -3,6 +3,7 @@ import PageTransition from '@/components/PageTransition';
 import { MessageSquare, Send, Phone, Video, Clock, Users, Building2, Plus, Search, Paperclip, Smile, Image, Mic, Check, CheckCheck, ArrowDown } from 'lucide-react';
 import AvatarInitials from '@/components/AvatarInitials';
 import StatCard from '@/components/StatCard';
+import ServiceStatusBanner from '@/components/ServiceStatusBanner';
 
 const conversations = [
   { id: '1', name: 'Mohammed El Fassi', lastMessage: 'Bonjour, je souhaite visiter l\'appartement Founty', time: '10:30', unread: 2, phone: '+212 6 12 34 56 78', online: true },
