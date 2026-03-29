@@ -231,11 +231,18 @@ const Transactions: React.FC = () => {
     fetchAll();
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingTx) {
-      setTransactions(prev => prev.filter(t => t.id !== deletingTx.id));
-      toast.success('Transaction supprimée');
-      setDeletingTx(null);
+      try {
+        await api.transactions.delete(deletingTx.id);
+        setTransactions(prev => prev.filter(t => t.id !== deletingTx.id));
+        toast.success('Transaction supprimée');
+      } catch (err) {
+        console.error('Erreur suppression transaction:', err);
+        toast.error('Impossible de supprimer la transaction');
+      } finally {
+        setDeletingTx(null);
+      }
     }
   };
 
