@@ -665,6 +665,13 @@ export default function Scraping() {
         url: l.url || '',
         status: l.status || 'new',
         created_at: l.date_scraping || l.created_at || new Date().toISOString(),
+        photos: l.photos || l.images || [],
+        surface: l.surface || l.superficie || 0,
+        bedrooms: l.chambres || l.bedrooms || 0,
+        bathrooms: l.salles_de_bain || l.bathrooms || 0,
+        rooms: l.pieces || l.rooms || 0,
+        description: l.description || '',
+        quartier: l.quartier || '',
       }));
       setLeads(mapped);
     } catch { /* ignore */ }
