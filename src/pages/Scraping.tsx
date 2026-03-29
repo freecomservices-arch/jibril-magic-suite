@@ -439,6 +439,13 @@ interface Lead {
   url: string;
   status: string;
   created_at: string;
+  photos?: string[];
+  surface?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  rooms?: number;
+  description?: string;
+  quartier?: string;
 }
 
 interface ScanLog {
