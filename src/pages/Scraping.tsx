@@ -700,10 +700,27 @@ export default function Scraping() {
 
   // ─── Filter leads ──────────────────────────────────────────────────────
   const filteredLeads = leads.filter(l => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return l.title.toLowerCase().includes(q) || l.city.toLowerCase().includes(q) || l.source.toLowerCase().includes(q);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!l.title.toLowerCase().includes(q) && !l.city.toLowerCase().includes(q) && !l.source.toLowerCase().includes(q)) return false;
+    }
+    if (sourceFilter && l.source.toLowerCase() !== sourceFilter.toLowerCase()) return false;
+    if (cityFilter && l.city !== cityFilter) return false;
+    if (typeFilter && l.type !== typeFilter) return false;
+    return true;
   });
+
+  const totalPages = Math.ceil(filteredLeads.length / LEADS_PER_PAGE);
+  const paginatedLeads = React.useMemo(() => {
+    const start = (currentPage - 1) * LEADS_PER_PAGE;
+    return filteredLeads.slice(start, start + LEADS_PER_PAGE);
+  }, [filteredLeads, currentPage, LEADS_PER_PAGE]);
+
+  React.useEffect(() => { setCurrentPage(1); }, [searchQuery, sourceFilter, cityFilter, typeFilter]);
+
+  const uniqueCities = React.useMemo(() => [...new Set(leads.map(l => l.city).filter(Boolean))], [leads]);
+  const uniqueTypes = React.useMemo(() => [...new Set(leads.map(l => l.type).filter(Boolean))], [leads]);
+  const uniqueSources = React.useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))], [leads]);
 
   // ─── Stats ──────────────────────────────────────────────────────────────
   const newLeadsToday = leads.filter(l => {
