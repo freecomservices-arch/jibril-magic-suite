@@ -265,31 +265,38 @@ const Contacts: React.FC = () => {
       open={modalOpen}
       onClose={() => { setModalOpen(false); setEditingContact(null); }}
       initialData={editingContact}
-      onSubmit={(data) => {
-        if (editingContact) {
-          setContacts(prev => prev.map(c => c.id === editingContact.id ? {
-            ...c,
-            name: data.name,
-            type: data.type,
-            phone: data.phone,
-            email: data.email || undefined,
-            budget: typeof data.budget === 'number' ? data.budget : undefined,
-            exigences: data.exigences || undefined,
-            notes: data.notes || undefined,
-            score: typeof data.score === 'number' ? data.score : c.score,
-          } : c));
-        } else {
-          const newContact: Contact = {
-            id: `c${Date.now()}`,
-            name: data.name, type: data.type, phone: data.phone,
-            email: data.email || undefined,
-            budget: typeof data.budget === 'number' ? data.budget : undefined,
-            exigences: data.exigences || undefined,
-            notes: data.notes || undefined,
-            score: typeof data.score === 'number' ? data.score : 50,
-            agentId: '2', createdAt: new Date().toISOString().split('T')[0],
-          };
-          setContacts(prev => [newContact, ...prev]);
+      onSubmit={async (data) => {
+        try {
+          if (editingContact) {
+            await api.contacts.update(editingContact.id, data);
+            setContacts(prev => prev.map(c => c.id === editingContact.id ? {
+              ...c,
+              name: data.name,
+              type: data.type,
+              phone: data.phone,
+              email: data.email || undefined,
+              budget: typeof data.budget === 'number' ? data.budget : undefined,
+              exigences: data.exigences || undefined,
+              notes: data.notes || undefined,
+              score: typeof data.score === 'number' ? data.score : c.score,
+            } : c));
+          } else {
+            const created = await api.contacts.create(data);
+            const newContact: Contact = {
+              id: String(created?.id || `c${Date.now()}`),
+              name: data.name, type: data.type, phone: data.phone,
+              email: data.email || undefined,
+              budget: typeof data.budget === 'number' ? data.budget : undefined,
+              exigences: data.exigences || undefined,
+              notes: data.notes || undefined,
+              score: typeof data.score === 'number' ? data.score : 50,
+              agentId: '2', createdAt: new Date().toISOString().split('T')[0],
+            };
+            setContacts(prev => [newContact, ...prev]);
+          }
+        } catch (err) {
+          console.error('Erreur sauvegarde contact:', err);
+          toast.error('Impossible de sauvegarder le contact');
         }
       }}
     />
