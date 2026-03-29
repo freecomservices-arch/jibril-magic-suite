@@ -134,6 +134,8 @@ export const api = {
   },
 
   health: () => apiClient('/health'),
+  systemHealth: () => apiClient('/system/health'),
+  systemLogs: () => apiClient('/system/logs'),
   systemStatus: () => apiClient('/system/status'),
 
   settings: {
