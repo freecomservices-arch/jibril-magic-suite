@@ -1,5 +1,5 @@
 // =============================================================================
-// JIBRIL IMMO CLOUD — API CLIENT (v2 — compatible backend 2 schemas)
+// JIBRIL IMMO CLOUD — API CLIENT (v3 — full backend support)
 // =============================================================================
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -27,6 +27,26 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}) => 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Erreur serveur' }));
     throw new Error(error.detail || error.message || 'Une erreur est survenue');
+  }
+
+  return response.json();
+};
+
+// Upload multipart (no JSON content-type)
+export const apiUpload = async (endpoint: string, formData: FormData) => {
+  const token = localStorage.getItem('token');
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Erreur serveur' }));
+    throw new Error(error.detail || error.message || 'Erreur upload');
   }
 
   return response.json();
@@ -99,11 +119,14 @@ export const api = {
   },
 
   leads: {
-    list: (params?: { source?: string; ville?: string; statut?: string; type_bien?: string; prix_min?: string; prix_max?: string; limit?: number; offset?: number }) => {
-      const queryString = params ? '?' + new URLSearchParams(
-        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null)) as Record<string, string>
-      ).toString() : '';
-      return apiClient(`/leads/${queryString}`);
+    list: (params?: Record<string, string | number | undefined>) => {
+      const filtered = params
+        ? Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+        : {};
+      const qs = Object.keys(filtered).length
+        ? '?' + new URLSearchParams(filtered as Record<string, string>).toString()
+        : '';
+      return apiClient(`/leads/${qs}`);
     },
     count: () => apiClient('/leads/count'),
     stats: () => apiClient('/leads/stats'),
@@ -121,25 +144,86 @@ export const api = {
   },
 
   analysis: {
-    goodDeals: (params?: { ville?: string; quartier?: string; type_bien?: string; discount_threshold?: number }) =>
+    goodDeals: (params?: Record<string, unknown>) =>
       apiClient('/analysis/good-deals', { method: 'POST', body: JSON.stringify(params || {}) }),
     quartiers: (ville?: string) =>
       apiClient(`/analysis/quartiers${ville ? '?ville=' + ville : ''}`),
     exportCsvUrl: (params?: { ville?: string; source?: string }) => {
-      const qs = params ? '?' + new URLSearchParams(
-        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null)) as Record<string, string>
-      ).toString() : '';
+      const filtered = params
+        ? Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+        : {};
+      const qs = Object.keys(filtered).length
+        ? '?' + new URLSearchParams(filtered as Record<string, string>).toString()
+        : '';
       return `${API_BASE_URL}/analysis/export-csv${qs}`;
     },
   },
 
-  health: () => apiClient('/health'),
+  // System — called by Scraping page health banner
+  systemHealth: () => apiClient('/system/health'),
+  systemLogs: () => apiClient('/system/logs'),
   systemStatus: () => apiClient('/system/status'),
+
+  health: () => apiClient('/health'),
 
   settings: {
     get: () => apiClient('/settings/'),
     save: (data: Record<string, unknown>) =>
       apiClient('/settings/', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
+  // Users (Administration)
+  users: {
+    list: () => apiClient('/users/'),
+    create: (data: Record<string, unknown>) =>
+      apiClient('/users/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Record<string, unknown>) =>
+      apiClient(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      apiClient(`/users/${id}`, { method: 'DELETE' }),
+  },
+
+  // Profile
+  profile: {
+    get: () => apiClient('/profile/'),
+    update: (data: Record<string, unknown>) =>
+      apiClient('/profile/', { method: 'PATCH', body: JSON.stringify(data) }),
+    changePassword: (data: { current_password: string; new_password: string }) =>
+      apiClient('/profile/password', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
+  // Leases (Gestion locative)
+  leases: {
+    list: () => apiClient('/leases/'),
+    create: (data: Record<string, unknown>) =>
+      apiClient('/leases/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Record<string, unknown>) =>
+      apiClient(`/leases/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      apiClient(`/leases/${id}`, { method: 'DELETE' }),
+    quittances: (id: string) => apiClient(`/leases/${id}/quittances`),
+  },
+
+  // Documents
+  documents: {
+    list: () => apiClient('/documents/'),
+    create: (data: Record<string, unknown>) =>
+      apiClient('/documents/', { method: 'POST', body: JSON.stringify(data) }),
+    upload: (formData: FormData) => apiUpload('/documents/upload', formData),
+    sign: (data: { document_id: string; signature_data_url: string }) =>
+      apiClient('/documents/sign', { method: 'POST', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      apiClient(`/documents/${id}`, { method: 'DELETE' }),
+  },
+
+  // Statistics
+  statistics: {
+    get: () => apiClient('/statistics/'),
+  },
+
+  // Audit Logs
+  auditLogs: {
+    list: () => apiClient('/audit-logs/'),
   },
 };
 
