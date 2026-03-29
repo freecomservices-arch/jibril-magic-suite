@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { Home, FileText, DollarSign, AlertTriangle, CheckCircle2, Plus, Receipt, TrendingDown, TrendingUp, Edit, Trash2, Phone, Mail, Search, Filter, X, Eye, Download } from 'lucide-react';
 import StatCard from '@/components/StatCard';
@@ -10,12 +10,7 @@ import CreateBailModal, { type Bail, type BailFormData } from '@/components/moda
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-
-const initialBaux: Bail[] = [
-  { id: 'b1', locataire: 'Samira Alaoui', bien: 'Apt Haut Founty', loyer: 8500, charges: 500, depot: 17000, debut: '2026-01-01', fin: '2027-01-01', statut: 'Actif', paiement: 'À jour', telephone: '+212 6 55 66 77 88', email: 'samira@email.ma' },
-  { id: 'b2', locataire: 'Omar Benjelloun', bien: 'Local Commercial Talborjt', loyer: 15000, charges: 1000, depot: 30000, debut: '2025-06-01', fin: '2026-06-01', statut: 'Actif', paiement: 'En retard', telephone: '+212 6 33 44 55 66', email: 'omar@email.ma' },
-  { id: 'b3', locataire: 'Marie Lefèvre', bien: 'Apt Marina', loyer: 12000, charges: 800, depot: 24000, debut: '2025-09-01', fin: '2026-09-01', statut: 'Actif', paiement: 'À jour', telephone: '+33 6 12 34 56 78', email: 'marie@email.fr' },
-];
+import { api } from '@/lib/api';
 
 interface Quittance {
   id: string;
@@ -61,15 +56,52 @@ const statutColors: Record<string, string> = {
   'Résilié': 'bg-destructive/15 text-destructive',
 };
 
+const fallbackBaux: Bail[] = [
+  { id: 'b1', locataire: 'Samira Alaoui', bien: 'Apt Haut Founty', loyer: 8500, charges: 500, depot: 17000, debut: '2026-01-01', fin: '2027-01-01', statut: 'Actif', paiement: 'À jour', telephone: '+212 6 55 66 77 88', email: 'samira@email.ma' },
+  { id: 'b2', locataire: 'Omar Benjelloun', bien: 'Local Commercial Talborjt', loyer: 15000, charges: 1000, depot: 30000, debut: '2025-06-01', fin: '2026-06-01', statut: 'Actif', paiement: 'En retard', telephone: '+212 6 33 44 55 66', email: 'omar@email.ma' },
+  { id: 'b3', locataire: 'Marie Lefèvre', bien: 'Apt Marina', loyer: 12000, charges: 800, depot: 24000, debut: '2025-09-01', fin: '2026-09-01', statut: 'Actif', paiement: 'À jour', telephone: '+33 6 12 34 56 78', email: 'marie@email.fr' },
+];
+
+const mapLease = (l: any): Bail => ({
+  id: String(l.id),
+  locataire: l.locataire || l.tenant_name || '',
+  bien: l.bien || l.property_name || '',
+  loyer: l.loyer || l.rent || 0,
+  charges: l.charges || 0,
+  depot: l.depot || l.deposit || 0,
+  debut: l.debut || l.start_date || '',
+  fin: l.fin || l.end_date || '',
+  statut: l.statut || l.status || 'Actif',
+  paiement: l.paiement || l.payment_status || 'À jour',
+  telephone: l.telephone || l.phone || '',
+  email: l.email || '',
+});
+
 const RentalManagement: React.FC = () => {
-  const [baux, setBaux] = useState<Bail[]>(initialBaux);
-  const loading = usePageLoading(600);
+  const [baux, setBaux] = useState<Bail[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBail, setEditingBail] = useState<Bail | null>(null);
   const [deletingBail, setDeletingBail] = useState<Bail | null>(null);
   const [detailBail, setDetailBail] = useState<Bail | null>(null);
   const [search, setSearch] = useState('');
   const [filterPaiement, setFilterPaiement] = useState('');
+
+  useEffect(() => {
+    const fetchLeases = async () => {
+      try {
+        const data = await api.leases.list();
+        const mapped = (Array.isArray(data) ? data : []).map(mapLease);
+        setBaux(mapped.length > 0 ? mapped : fallbackBaux);
+      } catch (err) {
+        console.error('Erreur chargement baux:', err);
+        setBaux(fallbackBaux);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLeases();
+  }, []);
 
   const filtered = useMemo(() => baux.filter(b => {
     if (search && !b.locataire.toLowerCase().includes(search.toLowerCase()) && !b.bien.toLowerCase().includes(search.toLowerCase())) return false;
@@ -88,32 +120,46 @@ const RentalManagement: React.FC = () => {
   const openCreate = () => { setEditingBail(null); setModalOpen(true); };
   const openEdit = (b: Bail) => { setEditingBail(b); setModalOpen(true); };
 
-  const handleSubmit = (data: BailFormData) => {
-    if (editingBail) {
-      setBaux(prev => prev.map(b => b.id === editingBail.id ? { ...b, ...data } : b));
-      toast.success('Bail modifié');
-    } else {
-      const newBail: Bail = { id: `b${Date.now()}`, ...data };
-      setBaux(prev => [newBail, ...prev]);
-      toast.success('Bail créé');
+  const handleSubmit = async (data: BailFormData) => {
+    try {
+      if (editingBail) {
+        await api.leases.update(editingBail.id, data);
+        setBaux(prev => prev.map(b => b.id === editingBail.id ? { ...b, ...data } : b));
+        toast.success('Bail modifié');
+      } else {
+        const created = await api.leases.create(data);
+        const newBail: Bail = { id: String(created?.id || `b${Date.now()}`), ...data };
+        setBaux(prev => [newBail, ...prev]);
+        toast.success('Bail créé');
+      }
+    } catch (err) {
+      console.error('Erreur sauvegarde bail:', err);
+      toast.error('Impossible de sauvegarder le bail');
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingBail) {
-      setBaux(prev => prev.filter(b => b.id !== deletingBail.id));
-      toast.success(`Bail de "${deletingBail.locataire}" supprimé`);
-      setDeletingBail(null);
+      try {
+        await api.leases.delete(deletingBail.id);
+        setBaux(prev => prev.filter(b => b.id !== deletingBail.id));
+        toast.success(`Bail de "${deletingBail.locataire}" supprimé`);
+      } catch (err) {
+        console.error('Erreur suppression bail:', err);
+        toast.error('Impossible de supprimer le bail');
+      } finally {
+        setDeletingBail(null);
+      }
     }
   };
 
-  const togglePaiement = (id: string) => {
-    setBaux(prev => prev.map(b => {
-      if (b.id !== id) return b;
-      const next = b.paiement === 'À jour' ? 'En retard' : b.paiement === 'En retard' ? 'Impayé' : 'À jour';
-      return { ...b, paiement: next as Bail['paiement'] };
-    }));
+  const togglePaiement = async (id: string) => {
+    const bail = baux.find(b => b.id === id);
+    if (!bail) return;
+    const next = bail.paiement === 'À jour' ? 'En retard' : bail.paiement === 'En retard' ? 'Impayé' : 'À jour';
+    setBaux(prev => prev.map(b => b.id !== id ? b : { ...b, paiement: next as Bail['paiement'] }));
     toast.success('Statut de paiement mis à jour');
+    api.leases.update(id, { paiement: next }).catch(err => console.error('Erreur update paiement:', err));
   };
 
   if (loading) {
@@ -156,7 +202,6 @@ const RentalManagement: React.FC = () => {
         <StatCard title="Reversements" value={formatMAD(stats.reversements)} icon={TrendingUp} variant="default" subtitle="Aux propriétaires" />
       </div>
 
-      {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 flex-1 min-w-[200px] max-w-md">
           <Search className="h-4 w-4 text-muted-foreground" />
@@ -175,7 +220,6 @@ const RentalManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Baux List */}
       <div className="rounded-lg border border-border bg-card card-shadow">
         <div className="border-b border-border px-5 py-4">
           <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
@@ -237,7 +281,6 @@ const RentalManagement: React.FC = () => {
       onSubmit={handleSubmit}
     />
 
-    {/* Delete confirmation */}
     <AlertDialog open={!!deletingBail} onOpenChange={(open) => !open && setDeletingBail(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -253,7 +296,6 @@ const RentalManagement: React.FC = () => {
       </AlertDialogContent>
     </AlertDialog>
 
-    {/* Quittances detail modal */}
     <Dialog open={!!detailBail} onOpenChange={(v) => !v && setDetailBail(null)}>
       <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>

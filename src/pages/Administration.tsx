@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { Shield, Users, Settings, Activity, Database, FileCheck, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,10 +7,18 @@ import AvatarInitials from '@/components/AvatarInitials';
 import CreateUserModal, { type UserFormData } from '@/components/modals/CreateUserModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { UserRowSkeleton, usePageLoading } from '@/components/Skeletons';
+import { UserRowSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { api } from '@/lib/api';
 
-const initialLogs = [
+interface AuditLog {
+  user: string;
+  action: string;
+  date: string;
+  ip: string;
+}
+
+const fallbackLogs: AuditLog[] = [
   { user: 'Admin Jibril', action: 'Modification bien P1', date: '25/02/2026 10:30', ip: '192.168.1.10' },
   { user: 'Amin Belhaj', action: 'Ajout contact C8', date: '25/02/2026 09:45', ip: '192.168.1.12' },
   { user: 'Sarah Idrissi', action: 'Création transaction T3', date: '24/02/2026 16:20', ip: '192.168.1.15' },
@@ -19,13 +27,55 @@ const initialLogs = [
 
 const Administration: React.FC = () => {
   const { allUsers } = useAuth();
-  const [users, setUsers] = useState<User[]>(allUsers);
-  const loading = usePageLoading(500);
-  const [logs, setLogs] = useState(initialLogs);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [usersData, logsData] = await Promise.all([
+          api.users.list().catch(() => null),
+          api.auditLogs.list().catch(() => null),
+        ]);
+
+        if (usersData && Array.isArray(usersData) && usersData.length > 0) {
+          setUsers(usersData.map((u: any) => ({
+            id: String(u.id),
+            name: u.name || u.full_name || '',
+            username: u.username || '',
+            email: u.email || '',
+            phone: u.phone || '',
+            role: u.role || 'agent',
+          })));
+        } else {
+          setUsers(allUsers);
+        }
+
+        if (logsData && Array.isArray(logsData) && logsData.length > 0) {
+          setLogs(logsData.map((l: any) => ({
+            user: l.user || l.user_name || '',
+            action: l.action || '',
+            date: l.date || (l.created_at ? new Date(l.created_at).toLocaleDateString('fr-FR') + ' ' + new Date(l.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''),
+            ip: l.ip || l.ip_address || '',
+          })));
+        } else {
+          setLogs(fallbackLogs);
+        }
+      } catch (err) {
+        console.error('Erreur chargement administration:', err);
+        setUsers(allUsers);
+        setLogs(fallbackLogs);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [allUsers]);
 
   const filtered = useMemo(() => users.filter(u =>
     !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
@@ -34,34 +84,48 @@ const Administration: React.FC = () => {
   const openCreate = () => { setEditingUser(null); setModalOpen(true); };
   const openEdit = (u: User) => { setEditingUser(u); setModalOpen(true); };
 
-  const handleSubmit = (data: UserFormData) => {
-    if (editingUser) {
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? {
-        ...u, name: data.name, username: data.username, email: data.email, phone: data.phone, role: data.role,
-      } : u));
-      addLog(`Modification utilisateur ${data.name}`);
-      toast.success(`"${data.name}" modifié`);
-    } else {
-      const newUser: User = {
-        id: `u${Date.now()}`,
-        name: data.name,
-        username: data.username,
-        email: data.email,
-        phone: data.phone,
-        role: data.role,
-      };
-      setUsers(prev => [...prev, newUser]);
-      addLog(`Ajout utilisateur ${data.name}`);
-      toast.success(`"${data.name}" créé`);
+  const handleSubmit = async (data: UserFormData) => {
+    try {
+      if (editingUser) {
+        await api.users.update(editingUser.id, data);
+        setUsers(prev => prev.map(u => u.id === editingUser.id ? {
+          ...u, name: data.name, username: data.username, email: data.email, phone: data.phone, role: data.role,
+        } : u));
+        addLog(`Modification utilisateur ${data.name}`);
+        toast.success(`"${data.name}" modifié`);
+      } else {
+        const created = await api.users.create(data);
+        const newUser: User = {
+          id: String(created?.id || `u${Date.now()}`),
+          name: data.name,
+          username: data.username,
+          email: data.email,
+          phone: data.phone,
+          role: data.role,
+        };
+        setUsers(prev => [...prev, newUser]);
+        addLog(`Ajout utilisateur ${data.name}`);
+        toast.success(`"${data.name}" créé`);
+      }
+    } catch (err) {
+      console.error('Erreur sauvegarde utilisateur:', err);
+      toast.error('Impossible de sauvegarder l\'utilisateur');
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingUser) {
-      setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
-      addLog(`Suppression utilisateur ${deletingUser.name}`);
-      toast.success(`"${deletingUser.name}" supprimé`);
-      setDeletingUser(null);
+      try {
+        await api.users.delete(deletingUser.id);
+        setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
+        addLog(`Suppression utilisateur ${deletingUser.name}`);
+        toast.success(`"${deletingUser.name}" supprimé`);
+      } catch (err) {
+        console.error('Erreur suppression utilisateur:', err);
+        toast.error('Impossible de supprimer l\'utilisateur');
+      } finally {
+        setDeletingUser(null);
+      }
     }
   };
 
@@ -102,7 +166,6 @@ const Administration: React.FC = () => {
         <p className="text-sm text-muted-foreground mt-1">Gestion des utilisateurs, paramètres & conformité CNDP</p>
       </div>
 
-      {/* Users */}
       <div className="rounded-lg border border-border bg-card card-shadow">
         <div className="border-b border-border px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
@@ -142,7 +205,6 @@ const Administration: React.FC = () => {
         </div>
       </div>
 
-      {/* Audit Logs */}
       <div className="rounded-lg border border-border bg-card card-shadow">
         <div className="border-b border-border px-5 py-4">
           <h2 className="font-heading text-base font-semibold text-card-foreground flex items-center gap-2">
@@ -162,7 +224,6 @@ const Administration: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Settings */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { icon: Settings, title: 'Paramètres Agence', desc: 'Nom, logo, adresse, téléphone' },
