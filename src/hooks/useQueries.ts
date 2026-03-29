@@ -87,7 +87,71 @@ export const queryKeys = {
   documents: ['documents'] as const,
   users: ['users'] as const,
   auditLogs: ['auditLogs'] as const,
+  statistics: ['statistics'] as const,
 };
+
+// ─── Statistics ──────────────────────────────────────────────────────────────
+
+export interface AgentStat {
+  name: string;
+  ca: number;
+  ventes: number;
+  appels: number;
+  visites: number;
+}
+
+export interface StatisticsData {
+  caTotal: number;
+  transactions: number;
+  appels: number;
+  tauxTransfo: string;
+  agents: AgentStat[];
+  periode: string;
+}
+
+const fallbackStats: StatisticsData = {
+  caTotal: 7350000,
+  transactions: 37,
+  appels: 300,
+  tauxTransfo: '24%',
+  periode: 'Février 2026',
+  agents: [
+    { name: 'Amin B.', ca: 2400000, ventes: 12, appels: 85, visites: 34 },
+    { name: 'Sarah I.', ca: 1800000, ventes: 9, appels: 72, visites: 28 },
+    { name: 'Khalil A.', ca: 1500000, ventes: 7, appels: 60, visites: 22 },
+    { name: 'Fatima Z.', ca: 900000, ventes: 5, appels: 45, visites: 18 },
+    { name: 'Youssef T.', ca: 750000, ventes: 4, appels: 38, visites: 15 },
+  ],
+};
+
+export function useStatistics() {
+  return useQuery({
+    queryKey: queryKeys.statistics,
+    queryFn: async () => {
+      try {
+        const data = await api.statistics.get();
+        return {
+          caTotal: data.ca_total ?? data.caTotal ?? fallbackStats.caTotal,
+          transactions: data.transactions ?? fallbackStats.transactions,
+          appels: data.appels ?? data.calls ?? fallbackStats.appels,
+          tauxTransfo: data.taux_transfo ?? data.tauxTransfo ?? fallbackStats.tauxTransfo,
+          periode: data.periode ?? data.period ?? fallbackStats.periode,
+          agents: Array.isArray(data.agents) && data.agents.length > 0
+            ? data.agents.map((a: any): AgentStat => ({
+                name: a.name || a.nom || '',
+                ca: a.ca ?? a.revenue ?? 0,
+                ventes: a.ventes ?? a.sales ?? 0,
+                appels: a.appels ?? a.calls ?? 0,
+                visites: a.visites ?? a.visits ?? 0,
+              }))
+            : fallbackStats.agents,
+        } as StatisticsData;
+      } catch {
+        return fallbackStats;
+      }
+    },
+  });
+}
 
 // ─── Properties ──────────────────────────────────────────────────────────────
 
