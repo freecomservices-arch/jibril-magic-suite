@@ -76,16 +76,4 @@ export function useLeads() {
   return { leads: data, loading, error, fetchLeads, updateLead };
 }
 
-export function useAuth() {
-  const { data, loading, error, execute } = useApi<any>();
-  
-  const login = useCallback((username: string, password: string) => 
-    execute(() => api.auth.login(username, password)), 
-  [execute]);
-  
-  const logout = useCallback(() => 
-    execute(() => api.auth.logout()), 
-  [execute]);
-  
-  return { user: data, loading, error, login, logout };
-}
+// useAuth is provided by AuthContext — do not duplicate here
