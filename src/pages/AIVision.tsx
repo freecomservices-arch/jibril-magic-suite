@@ -4,6 +4,7 @@ import { Bot, Upload, Camera, Eye, Star, Tag, FileText, Plus, Sparkles, CheckCir
 import EmptyState from '@/components/EmptyState';
 import FileUpload from '@/components/FileUpload';
 import StatCard from '@/components/StatCard';
+import ServiceStatusBanner from '@/components/ServiceStatusBanner';
 
 const mockVisitReports = [
   {
