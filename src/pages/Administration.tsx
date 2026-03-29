@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import { Shield, Users, Settings, Activity, Database, FileCheck, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,133 +9,44 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { UserRowSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
-import { api } from '@/lib/api';
-
-interface AuditLog {
-  user: string;
-  action: string;
-  date: string;
-  ip: string;
-}
-
-const fallbackLogs: AuditLog[] = [
-  { user: 'Admin Jibril', action: 'Modification bien P1', date: '25/02/2026 10:30', ip: '192.168.1.10' },
-  { user: 'Amin Belhaj', action: 'Ajout contact C8', date: '25/02/2026 09:45', ip: '192.168.1.12' },
-  { user: 'Sarah Idrissi', action: 'Création transaction T3', date: '24/02/2026 16:20', ip: '192.168.1.15' },
-  { user: 'Admin Jibril', action: 'Export statistiques PDF', date: '24/02/2026 14:00', ip: '192.168.1.10' },
-];
+import { useUsers, useUserMutations, useAuditLogs, type AdminUser, type AuditLog } from '@/hooks/useQueries';
 
 const Administration: React.FC = () => {
   const { allUsers } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const fallbackUsers: AdminUser[] = useMemo(() => allUsers.map(u => ({
+    id: u.id, name: u.name, username: u.username, email: u.email || '', phone: u.phone || '', role: u.role,
+  })), [allUsers]);
+
+  const { data: users = [], isLoading: usersLoading } = useUsers(fallbackUsers);
+  const { data: logs = [], isLoading: logsLoading } = useAuditLogs();
+  const { createUser, updateUser, deleteUser } = useUserMutations();
+  const loading = usersLoading || logsLoading;
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [usersData, logsData] = await Promise.all([
-          api.users.list().catch(() => null),
-          api.auditLogs.list().catch(() => null),
-        ]);
-
-        if (usersData && Array.isArray(usersData) && usersData.length > 0) {
-          setUsers(usersData.map((u: any) => ({
-            id: String(u.id),
-            name: u.name || u.full_name || '',
-            username: u.username || '',
-            email: u.email || '',
-            phone: u.phone || '',
-            role: u.role || 'agent',
-          })));
-        } else {
-          setUsers(allUsers);
-        }
-
-        if (logsData && Array.isArray(logsData) && logsData.length > 0) {
-          setLogs(logsData.map((l: any) => ({
-            user: l.user || l.user_name || '',
-            action: l.action || '',
-            date: l.date || (l.created_at ? new Date(l.created_at).toLocaleDateString('fr-FR') + ' ' + new Date(l.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''),
-            ip: l.ip || l.ip_address || '',
-          })));
-        } else {
-          setLogs(fallbackLogs);
-        }
-      } catch (err) {
-        console.error('Erreur chargement administration:', err);
-        setUsers(allUsers);
-        setLogs(fallbackLogs);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [allUsers]);
 
   const filtered = useMemo(() => users.filter(u =>
     !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
   ), [users, search]);
 
   const openCreate = () => { setEditingUser(null); setModalOpen(true); };
-  const openEdit = (u: User) => { setEditingUser(u); setModalOpen(true); };
+  const openEdit = (u: AdminUser) => { setEditingUser(u); setModalOpen(true); };
 
-  const handleSubmit = async (data: UserFormData) => {
-    try {
-      if (editingUser) {
-        await api.users.update(editingUser.id, data);
-        setUsers(prev => prev.map(u => u.id === editingUser.id ? {
-          ...u, name: data.name, username: data.username, email: data.email, phone: data.phone, role: data.role,
-        } : u));
-        addLog(`Modification utilisateur ${data.name}`);
-        toast.success(`"${data.name}" modifié`);
-      } else {
-        const created = await api.users.create(data);
-        const newUser: User = {
-          id: String(created?.id || `u${Date.now()}`),
-          name: data.name,
-          username: data.username,
-          email: data.email,
-          phone: data.phone,
-          role: data.role,
-        };
-        setUsers(prev => [...prev, newUser]);
-        addLog(`Ajout utilisateur ${data.name}`);
-        toast.success(`"${data.name}" créé`);
-      }
-    } catch (err) {
-      console.error('Erreur sauvegarde utilisateur:', err);
-      toast.error('Impossible de sauvegarder l\'utilisateur');
+  const handleSubmit = (data: UserFormData) => {
+    if (editingUser) {
+      updateUser.mutate({ id: editingUser.id, data: data as Record<string, unknown> });
+    } else {
+      createUser.mutate(data as Record<string, unknown>);
     }
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (deletingUser) {
-      try {
-        await api.users.delete(deletingUser.id);
-        setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
-        addLog(`Suppression utilisateur ${deletingUser.name}`);
-        toast.success(`"${deletingUser.name}" supprimé`);
-      } catch (err) {
-        console.error('Erreur suppression utilisateur:', err);
-        toast.error('Impossible de supprimer l\'utilisateur');
-      } finally {
-        setDeletingUser(null);
-      }
+      deleteUser.mutate(deletingUser.id);
+      setDeletingUser(null);
     }
-  };
-
-  const addLog = (action: string) => {
-    setLogs(prev => [{
-      user: 'Admin Jibril',
-      action,
-      date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      ip: '192.168.1.10',
-    }, ...prev]);
   };
 
   if (loading) {
@@ -242,7 +153,7 @@ const Administration: React.FC = () => {
     <CreateUserModal
       open={modalOpen}
       onClose={() => { setModalOpen(false); setEditingUser(null); }}
-      initialData={editingUser}
+      initialData={editingUser as User | null}
       onSubmit={handleSubmit}
     />
 
@@ -250,9 +161,7 @@ const Administration: React.FC = () => {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Supprimer cet utilisateur ?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Supprimer « {deletingUser?.name} » ? Cette action est irréversible.
-          </AlertDialogDescription>
+          <AlertDialogDescription>Supprimer « {deletingUser?.name} » ? Cette action est irréversible.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>

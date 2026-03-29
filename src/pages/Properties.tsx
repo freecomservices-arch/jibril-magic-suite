@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
 import {
   Building2, MapPin, Bed, Bath, Maximize, Search, Plus, Filter,
@@ -15,7 +15,7 @@ import PropertyMap from '@/components/PropertyMap';
 import PropertyFormModal from '@/components/modals/CreatePropertyModal';
 import { PropertyCardSkeleton, StatCardSkeleton } from '@/components/Skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
-import { api } from '@/lib/api';
+import { useProperties, usePropertyMutations } from '@/hooks/useQueries';
 
 const statusColors: Record<string, string> = {
   'Disponible': 'bg-success/15 text-success border-success/20',
@@ -180,8 +180,8 @@ const PropertyListRow: React.FC<{ property: Property; onOpenGallery: () => void;
 const PROPERTIES_PER_PAGE = 12;
 
 const Properties: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: properties = [], isLoading } = useProperties();
+  const { createProperty, updateProperty, deleteProperty } = usePropertyMutations();
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -193,57 +193,6 @@ const Properties: React.FC = () => {
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const data = await api.properties.list();
-        const mapped: Property[] = (Array.isArray(data) ? data : []).map((p: any) => ({
-          id: String(p.id),
-          title: p.title || '',
-          type: p.type || 'Appartement',
-          transaction: p.transaction || 'Vente',
-          price: p.price || 0,
-          surface: p.surface || 0,
-          rooms: p.rooms,
-          bedrooms: p.bedrooms,
-          bathrooms: p.bathrooms,
-          city: p.city || '',
-          quartier: p.quartier || p.neighborhood || '',
-          address: p.address || '',
-          description: p.description || '',
-          status: p.status || 'Disponible',
-          mandat: p.mandat || 'Simple',
-          agentId: String(p.agent_id || p.agentId || ''),
-          photos: Array.isArray(p.photos) ? p.photos : [],
-          createdAt: p.created_at || p.createdAt || new Date().toISOString(),
-          gps: p.gps || p.coordinates,
-        }));
-        setProperties(mapped);
-      } catch (err) {
-        console.error('Erreur chargement biens:', err);
-        toast.error('Impossible de charger les biens');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  const confirmDelete = async () => {
-    if (deletingProperty) {
-      try {
-        await api.properties.delete(deletingProperty.id);
-        setProperties(prev => prev.filter(p => p.id !== deletingProperty.id));
-        toast.success(`"${deletingProperty.title}" supprimé`);
-      } catch (err) {
-        console.error('Erreur suppression bien:', err);
-        toast.error('Impossible de supprimer le bien');
-      } finally {
-        setDeletingProperty(null);
-      }
-    }
-  };
 
   const filtered = properties.filter(p => {
     if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !(p.quartier || '').toLowerCase().includes(search.toLowerCase())) return false;
@@ -265,7 +214,14 @@ const Properties: React.FC = () => {
   const openCreate = () => { setEditingProperty(null); setModalOpen(true); };
   const openEdit = (p: Property) => { setEditingProperty(p); setModalOpen(true); };
 
-  if (loading) {
+  const confirmDelete = () => {
+    if (deletingProperty) {
+      deleteProperty.mutate(deletingProperty.id);
+      setDeletingProperty(null);
+    }
+  };
+
+  if (isLoading) {
     return (
       <PageTransition>
         <div className="space-y-5">
@@ -374,44 +330,11 @@ const Properties: React.FC = () => {
       open={modalOpen}
       onClose={() => { setModalOpen(false); setEditingProperty(null); }}
       initialData={editingProperty}
-      onSubmit={async (data) => {
-        try {
-          if (editingProperty) {
-            const updated = await api.properties.update(editingProperty.id, data);
-            setProperties(prev => prev.map(p => p.id === editingProperty.id ? {
-              ...p, ...data,
-              ...(updated?.id ? { id: String(updated.id) } : {}),
-              rooms: typeof data.rooms === 'number' ? data.rooms : p.rooms,
-              bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : p.bedrooms,
-              bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : p.bathrooms,
-            } : p));
-          } else {
-            const created = await api.properties.create(data);
-            const newProperty: Property = {
-              id: String(created?.id || `p${Date.now()}`),
-              title: data.title,
-              type: data.type,
-              transaction: data.transaction,
-              price: data.price,
-              surface: data.surface,
-              rooms: typeof data.rooms === 'number' ? data.rooms : undefined,
-              bedrooms: typeof data.bedrooms === 'number' ? data.bedrooms : undefined,
-              bathrooms: typeof data.bathrooms === 'number' ? data.bathrooms : undefined,
-              city: data.city,
-              quartier: data.quartier,
-              address: data.address,
-              description: data.description,
-              status: data.status,
-              mandat: data.mandat,
-              agentId: '2',
-              photos: [],
-              createdAt: new Date().toISOString().split('T')[0],
-            };
-            setProperties(prev => [newProperty, ...prev]);
-          }
-        } catch (err) {
-          console.error('Erreur sauvegarde bien:', err);
-          toast.error('Impossible de sauvegarder le bien');
+      onSubmit={(data) => {
+        if (editingProperty) {
+          updateProperty.mutate({ id: editingProperty.id, data });
+        } else {
+          createProperty.mutate(data);
         }
       }}
     />

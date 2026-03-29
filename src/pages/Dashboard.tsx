@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StatCard from '@/components/StatCard';
 import AvatarInitials from '@/components/AvatarInitials';
@@ -12,67 +12,25 @@ import {
   Eye, MapPin
 } from 'lucide-react';
 import { formatMAD } from '@/data/mockData';
-import type { Property, Contact, Transaction, Notification } from '@/data/mockData';
+import type { Notification } from '@/data/mockData';
 import { mockNotifications } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { api } from '@/lib/api';
+import { useProperties, useContacts, useTransactions } from '@/hooks/useQueries';
 
 const CHART_COLORS = ['hsl(217, 91%, 60%)', 'hsl(160, 84%, 39%)', 'hsl(38, 92%, 50%)', 'hsl(280, 67%, 51%)', 'hsl(0, 72%, 51%)'];
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { data: properties = [], isLoading: propsLoading } = useProperties();
+  const { data: contacts = [], isLoading: contactsLoading } = useContacts();
+  const { data: transactions = [], isLoading: txLoading } = useTransactions();
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [propData, contactData, txData] = await Promise.all([
-          api.properties.list().catch(() => []),
-          api.contacts.list().catch(() => []),
-          api.transactions.list().catch(() => []),
-        ]);
-
-        setProperties((Array.isArray(propData) ? propData : []).map((p: any) => ({
-          id: String(p.id), title: p.title || '', type: p.type || 'Appartement',
-          transaction: p.transaction || 'Vente', price: p.price || 0, surface: p.surface || 0,
-          city: p.city || '', quartier: p.quartier || '', address: p.address || '',
-          description: p.description || '', status: p.status || 'Disponible',
-          mandat: p.mandat || 'Simple', agentId: String(p.agent_id || ''),
-          photos: Array.isArray(p.photos) ? p.photos : [],
-          createdAt: p.created_at || new Date().toISOString(),
-        })));
-
-        setContacts((Array.isArray(contactData) ? contactData : []).map((c: any) => ({
-          id: String(c.id), name: c.name || '', type: c.type || 'Acquéreur',
-          phone: c.phone || '', email: c.email, score: c.score ?? 50,
-          agentId: String(c.agent_id || ''),
-          createdAt: c.created_at || c.createdAt || new Date().toISOString(),
-        })));
-
-        setTransactions((Array.isArray(txData) ? txData : []).map((t: any) => ({
-          id: String(t.id), propertyId: String(t.property_id || ''),
-          contactId: String(t.contact_id || ''), type: t.type || 'Vente',
-          stage: t.stage || 'Offre', amount: t.amount || 0,
-          commission: t.commission || 0, agentId: String(t.agent_id || ''),
-          createdAt: t.created_at || new Date().toISOString(),
-          documents: Array.isArray(t.documents) ? t.documents : [],
-        })));
-      } catch (err) {
-        console.error('Erreur chargement dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, []);
+  const loading = propsLoading || contactsLoading || txLoading;
 
   const availableProps = properties.filter(p => p.status === 'Disponible').length;
   const totalCA = transactions.reduce((sum, t) => sum + t.amount, 0);
 
-  const salesData = React.useMemo(() => {
+  const salesData = useMemo(() => {
     const months: Record<string, { ventes: number; locations: number }> = {};
     transactions.forEach(t => {
       const d = new Date(t.createdAt);
@@ -91,7 +49,7 @@ const Dashboard: React.FC = () => {
       });
   }, [transactions]);
 
-  const sourceData = React.useMemo(() => {
+  const sourceData = useMemo(() => {
     const sources: Record<string, number> = {};
     contacts.forEach(c => { sources[c.type] = (sources[c.type] || 0) + 1; });
     const total = contacts.length || 1;
@@ -100,7 +58,7 @@ const Dashboard: React.FC = () => {
     }));
   }, [contacts]);
 
-  const agentPerf = React.useMemo(() => {
+  const agentPerf = useMemo(() => {
     const agents: Record<string, { ventes: number; ca: number }> = {};
     transactions.forEach(t => {
       if (!agents[t.agentId]) agents[t.agentId] = { ventes: 0, ca: 0 };
@@ -116,7 +74,7 @@ const Dashboard: React.FC = () => {
     return (now.getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
   }).length;
 
-  const todayVisits = React.useMemo(() => {
+  const todayVisits = useMemo(() => {
     const times = ['09:00', '10:30', '11:30', '14:00'];
     const agents = ['Amin B.', 'Sarah I.', 'Fatima Z.', 'Khalil A.'];
     return contacts
