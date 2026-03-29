@@ -1,5 +1,5 @@
 // =============================================================================
-// JIBRIL IMMO CLOUD — API CLIENT
+// JIBRIL IMMO CLOUD — API CLIENT (v2 — compatible backend 2 schemas)
 // =============================================================================
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -40,14 +40,14 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 export const api = {
   auth: {
     login: (username: string, password: string) =>
-      apiClient('/login/', {
+      apiClient('/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       }),
     logout: () =>
-      apiClient('/logout/', { method: 'POST' }),
+      apiClient('/logout', { method: 'POST' }),
     register: (username: string, email: string, password: string) =>
-      apiClient('/register/', {
+      apiClient('/register', {
         method: 'POST',
         body: JSON.stringify({ username, email, password }),
       }),
@@ -55,35 +55,35 @@ export const api = {
 
   properties: {
     list: () => apiClient('/properties/'),
-    detail: (id: string) => apiClient(`/properties/${id}/`),
+    detail: (id: string) => apiClient(`/properties/${id}`),
     create: (data: Record<string, unknown>) =>
       apiClient('/properties/', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Record<string, unknown>) =>
-      apiClient(`/properties/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+      apiClient(`/properties/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) =>
-      apiClient(`/properties/${id}/`, { method: 'DELETE' }),
+      apiClient(`/properties/${id}`, { method: 'DELETE' }),
   },
 
   contacts: {
     list: () => apiClient('/contacts/'),
-    detail: (id: string) => apiClient(`/contacts/${id}/`),
+    detail: (id: string) => apiClient(`/contacts/${id}`),
     create: (data: Record<string, unknown>) =>
       apiClient('/contacts/', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Record<string, unknown>) =>
-      apiClient(`/contacts/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+      apiClient(`/contacts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) =>
-      apiClient(`/contacts/${id}/`, { method: 'DELETE' }),
+      apiClient(`/contacts/${id}`, { method: 'DELETE' }),
   },
 
   transactions: {
     list: () => apiClient('/transactions/'),
-    detail: (id: string) => apiClient(`/transactions/${id}/`),
+    detail: (id: string) => apiClient(`/transactions/${id}`),
     create: (data: Record<string, unknown>) =>
       apiClient('/transactions/', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Record<string, unknown>) =>
-      apiClient(`/transactions/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+      apiClient(`/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) =>
-      apiClient(`/transactions/${id}/`, { method: 'DELETE' }),
+      apiClient(`/transactions/${id}`, { method: 'DELETE' }),
   },
 
   sources: {
@@ -91,35 +91,51 @@ export const api = {
     create: (data: { name: string; url: string; active?: boolean }) =>
       apiClient('/sources/', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: { name?: string; url?: string; active?: boolean }) =>
-      apiClient(`/sources/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+      apiClient(`/sources/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) =>
-      apiClient(`/sources/${id}/`, { method: 'DELETE' }),
+      apiClient(`/sources/${id}`, { method: 'DELETE' }),
+    toggle: (id: string) =>
+      apiClient(`/sources/${id}/toggle`, { method: 'PATCH' }),
   },
 
   leads: {
-    list: (params?: { source?: string; city?: string; status?: string; limit?: number }) => {
-      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    list: (params?: { source?: string; ville?: string; statut?: string; type_bien?: string; prix_min?: string; prix_max?: string; limit?: number; offset?: number }) => {
+      const queryString = params ? '?' + new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null)) as Record<string, string>
+      ).toString() : '';
       return apiClient(`/leads/${queryString}`);
     },
-    detail: (id: string) => apiClient(`/leads/${id}/`),
-    update: (id: string, data: { status?: string; notes?: string }) =>
-      apiClient(`/leads/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    count: () => apiClient('/leads/count'),
+    stats: () => apiClient('/leads/stats'),
+    update: (id: string, data: { statut?: string; notes?: string }) =>
+      apiClient(`/leads/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) =>
-      apiClient(`/leads/${id}/`, { method: 'DELETE' }),
+      apiClient(`/leads/${id}`, { method: 'DELETE' }),
   },
 
   scraping: {
-    scan: (source?: string, url?: string, max_listings?: number) =>
-      apiClient('/scan/', { method: 'POST', body: JSON.stringify({ source, url, max_listings }) }),
+    scan: (source?: string, url?: string) =>
+      apiClient('/scan/', { method: 'POST', body: JSON.stringify({ source, url }) }),
     scanAll: () =>
-      apiClient('/scan/all/', { method: 'POST' }),
-    logs: () =>
-      apiClient('/scan/'),
+      apiClient('/scan/all', { method: 'POST' }),
   },
 
-  health: () => apiClient('/health/'),
-  systemHealth: () => apiClient('/system/health'),
-  systemLogs: () => apiClient('/system/logs'),
+  analysis: {
+    goodDeals: (params?: { ville?: string; quartier?: string; type_bien?: string; discount_threshold?: number }) =>
+      apiClient('/analysis/good-deals', { method: 'POST', body: JSON.stringify(params || {}) }),
+    quartiers: (ville?: string) =>
+      apiClient(`/analysis/quartiers${ville ? '?ville=' + ville : ''}`),
+    exportCsvUrl: (params?: { ville?: string; source?: string }) => {
+      const qs = params ? '?' + new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null)) as Record<string, string>
+      ).toString() : '';
+      return `${API_BASE_URL}/analysis/export-csv${qs}`;
+    },
+  },
+
+  health: () => apiClient('/health'),
+  systemStatus: () => apiClient('/system/status'),
+
   settings: {
     get: () => apiClient('/settings/'),
     save: (data: Record<string, unknown>) =>
@@ -127,8 +143,8 @@ export const api = {
   },
 };
 
-export const startScan = (source: string, maxListings: number) =>
+export const startScan = (source: string) =>
   apiClient('/scan/', {
     method: 'POST',
-    body: JSON.stringify({ source, max_listings: maxListings }),
+    body: JSON.stringify({ source }),
   });
