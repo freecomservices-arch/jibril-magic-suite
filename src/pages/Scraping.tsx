@@ -933,19 +933,31 @@ export default function Scraping() {
 
               {/* ─── Tab: Results ──────────────────────────────────────── */}
               <TabsContent value="results" className="space-y-4">
-                {/* Search bar */}
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 max-w-md">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Rechercher un lead..."
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-                  />
+                {/* Filters + View Switcher */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 flex-1 min-w-[200px] max-w-md">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher un lead..." className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                  </div>
+                  <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none">
+                    <option value="">Toutes sources</option>
+                    {uniqueSources.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <select value={cityFilter} onChange={e => setCityFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none">
+                    <option value="">Toutes villes</option>
+                    {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none">
+                    <option value="">Tous types</option>
+                    {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <div className="flex rounded-lg border border-border bg-card p-0.5">
+                    <button onClick={() => setViewMode('grid')} className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Grille"><Grid3X3 className="h-4 w-4" /></button>
+                    <button onClick={() => setViewMode('list')} className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Cartes"><List className="h-4 w-4" /></button>
+                    <button onClick={() => setViewMode('detail')} className={`rounded-md p-1.5 ${viewMode === 'detail' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Liste détaillée"><LayoutList className="h-4 w-4" /></button>
+                  </div>
                 </div>
 
-                {/* Table */}
                 {filteredLeads.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground">
                     <Globe className="w-12 h-12 mx-auto mb-4 opacity-30" />
@@ -953,79 +965,233 @@ export default function Scraping() {
                     <p className="text-sm mt-1">Lancez un scan pour récupérer des leads</p>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-border bg-card overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Source</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Titre</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Prix</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Localisation</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Type</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Téléphone</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {filteredLeads.map(lead => (
-                            <tr key={lead.id} className="hover:bg-muted/30 transition-colors">
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[lead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
+                  <>
+                    {/* Grid View */}
+                    {viewMode === 'grid' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {paginatedLeads.map(lead => (
+                          <div key={lead.id} className="group rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all duration-300 overflow-hidden animate-fade-in">
+                            <div className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                              {lead.photos && lead.photos.length > 0 ? (
+                                <img src={lead.photos[0]} alt={lead.title} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center"><Building2 className="h-16 w-16 text-primary/20" /></div>
+                              )}
+                              <div className="absolute top-3 left-3 flex gap-1.5">
+                                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[lead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
                                   {sourceIcons[lead.source.toLowerCase()] || '🌐'} {lead.source}
                                 </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <p className="text-sm font-medium text-foreground line-clamp-1 max-w-[220px]">{lead.title || '—'}</p>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="font-heading text-sm font-bold text-primary">{formatPrice(lead.price)}</span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <MapPin className="h-3 w-3" /> {lead.city || '—'}
+                                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusColors[lead.status] || 'bg-muted text-muted-foreground'}`}>
+                                  {lead.status === 'new' ? 'Nouveau' : lead.status}
                                 </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <Tag className="h-3 w-3" /> {lead.type || '—'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                {lead.phone ? (
-                                  <a href={`tel:${lead.phone}`} className="flex items-center gap-1 text-sm text-primary hover:underline">
-                                    <Phone className="h-3 w-3" /> {lead.phone}
-                                  </a>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">—</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex gap-1">
-                                  {lead.url && (
-                                    <a
-                                      href={lead.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors"
-                                    >
-                                      <ExternalLink className="h-3 w-3" /> Voir
-                                    </a>
-                                  )}
-                                  <button
-                                    onClick={() => handleDeleteLead(lead.id)}
-                                    className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/20 transition-colors"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
+                              </div>
+                              {lead.photos && lead.photos.length > 0 && (
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-2 py-1 text-[10px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Camera className="h-3 w-3" /> {lead.photos.length} photos
                                 </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                              )}
+                              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-card/80 to-transparent h-16" />
+                            </div>
+                            <div className="p-4">
+                              <h3 className="font-heading text-sm font-semibold text-card-foreground line-clamp-1">{lead.title || 'Sans titre'}</h3>
+                              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3" /> {lead.quartier ? `${lead.quartier}, ` : ''}{lead.city || '—'}
+                              </p>
+                              <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+                                {lead.surface ? <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {lead.surface} m²</span> : null}
+                                {lead.bedrooms ? <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {lead.bedrooms}</span> : null}
+                                {lead.rooms ? <span className="flex items-center gap-1">🚪 {lead.rooms} p.</span> : null}
+                              </div>
+                              <div className="mt-3 flex items-center justify-between">
+                                <p className="font-heading text-lg font-bold text-primary">{formatPrice(lead.price)}</p>
+                              </div>
+                              <div className="mt-3 flex gap-1.5 pt-3 border-t border-border">
+                                <button onClick={() => setSelectedLead(lead)} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
+                                  <Eye className="h-3 w-3" /> Détails
+                                </button>
+                                {lead.url && (
+                                  <a href={lead.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 rounded-md bg-accent/10 px-2.5 py-1.5 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors">
+                                    <ExternalLink className="h-3 w-3" /> Annonce
+                                  </a>
+                                )}
+                                {lead.phone && (
+                                  <a href={`tel:${lead.phone}`} className="flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success hover:bg-success/20 transition-colors">
+                                    <Phone className="h-3 w-3" /> Appeler
+                                  </a>
+                                )}
+                                <button onClick={() => handleDeleteLead(lead.id)} className="flex items-center gap-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/20 transition-colors">
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* List View (cards horizontaux) */}
+                    {viewMode === 'list' && (
+                      <div className="space-y-3">
+                        {paginatedLeads.map(lead => (
+                          <div key={lead.id} className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
+                            <div className="relative w-full sm:w-48 h-36 sm:h-auto bg-gradient-to-br from-primary/10 via-accent/5 to-muted shrink-0 cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                              {lead.photos && lead.photos.length > 0 ? (
+                                <img src={lead.photos[0]} alt={lead.title} className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center"><Building2 className="h-12 w-12 text-primary/20" /></div>
+                              )}
+                              <div className="absolute top-2 left-2 flex gap-1">
+                                <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${sourceColors[lead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
+                                  {sourceIcons[lead.source.toLowerCase()] || '🌐'} {lead.source}
+                                </span>
+                              </div>
+                              {lead.photos && lead.photos.length > 0 && (
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-1.5 py-0.5 text-[9px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Camera className="h-3 w-3" /> {lead.photos.length}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+                              <div>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <h3 className="font-heading text-sm font-semibold text-card-foreground line-clamp-1">{lead.title || 'Sans titre'}</h3>
+                                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" /> {lead.quartier ? `${lead.quartier}, ` : ''}{lead.city || '—'}</p>
+                                  </div>
+                                  <p className="font-heading text-base font-bold text-primary whitespace-nowrap">{formatPrice(lead.price)}</p>
+                                </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                  {lead.surface ? <span className="flex items-center gap-1"><Maximize className="h-3 w-3" /> {lead.surface} m²</span> : null}
+                                  {lead.bedrooms ? <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {lead.bedrooms} ch.</span> : null}
+                                  {lead.bathrooms ? <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {lead.bathrooms} sdb</span> : null}
+                                  {lead.type && <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> {lead.type}</span>}
+                                </div>
+                                {lead.description && <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{lead.description}</p>}
+                              </div>
+                            </div>
+                            <div className="flex sm:flex-col items-center justify-end gap-1.5 p-3 sm:border-l border-t sm:border-t-0 border-border shrink-0">
+                              <button onClick={() => setSelectedLead(lead)} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
+                                <Eye className="h-3 w-3" /> Détails
+                              </button>
+                              {lead.url && (
+                                <a href={lead.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 rounded-md bg-accent/10 px-2.5 py-1.5 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors">
+                                  <ExternalLink className="h-3 w-3" /> Annonce
+                                </a>
+                              )}
+                              {lead.phone && (
+                                <a href={`tel:${lead.phone}`} className="flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success hover:bg-success/20 transition-colors">
+                                  <Phone className="h-3 w-3" /> Appeler
+                                </a>
+                              )}
+                              <button onClick={() => handleDeleteLead(lead.id)} className="flex items-center gap-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/20 transition-colors">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Detail View (table enrichie) */}
+                    {viewMode === 'detail' && (
+                      <div className="rounded-lg border border-border bg-card overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/50">
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Photo</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Source</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Titre</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Prix</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Localisation</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Type</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Surface</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Téléphone</th>
+                                <th className="px-3 py-3 text-left text-xs font-semibold text-muted-foreground">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {paginatedLeads.map(lead => (
+                                <tr key={lead.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                                  <td className="px-3 py-2">
+                                    <div className="h-10 w-14 rounded bg-muted/30 overflow-hidden">
+                                      {lead.photos && lead.photos.length > 0 ? (
+                                        <img src={lead.photos[0]} alt="" className="h-full w-full object-cover" />
+                                      ) : (
+                                        <div className="h-full w-full flex items-center justify-center"><Image className="h-4 w-4 text-muted-foreground/30" /></div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[lead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
+                                      {sourceIcons[lead.source.toLowerCase()] || '🌐'} {lead.source}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2"><p className="text-sm font-medium text-foreground line-clamp-1 max-w-[200px]">{lead.title || '—'}</p></td>
+                                  <td className="px-3 py-2"><span className="font-heading text-sm font-bold text-primary">{formatPrice(lead.price)}</span></td>
+                                  <td className="px-3 py-2"><span className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3 w-3" /> {lead.city || '—'}</span></td>
+                                  <td className="px-3 py-2"><span className="text-sm text-muted-foreground">{lead.type || '—'}</span></td>
+                                  <td className="px-3 py-2"><span className="text-sm text-muted-foreground">{lead.surface ? `${lead.surface} m²` : '—'}</span></td>
+                                  <td className="px-3 py-2">
+                                    {lead.phone ? (
+                                      <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-sm text-primary hover:underline">
+                                        <Phone className="h-3 w-3" /> {lead.phone}
+                                      </a>
+                                    ) : <span className="text-sm text-muted-foreground">—</span>}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                                      {lead.url && (
+                                        <a href={lead.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
+                                          <ExternalLink className="h-3 w-3" /> Voir
+                                        </a>
+                                      )}
+                                      <button onClick={() => handleDeleteLead(lead.id)} className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/20 transition-colors">
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 card-shadow">
+                        <p className="text-sm text-muted-foreground">
+                          {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, filteredLeads.length)} sur {filteredLeads.length}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                            .reduce<(number | string)[]>((acc, p, i, arr) => {
+                              if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+                              acc.push(p);
+                              return acc;
+                            }, [])
+                            .map((p, i) =>
+                              typeof p === 'string' ? (
+                                <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                              ) : (
+                                <button key={p} onClick={() => setCurrentPage(p)} className={`min-w-[32px] rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${p === currentPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
+                                  {p}
+                                </button>
+                              )
+                            )}
+                          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </TabsContent>
 
