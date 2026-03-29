@@ -584,11 +584,18 @@ export default function Scraping() {
     };
     try {
       const created = await api.sources.create({ name, url, active: true });
-      setSources(prev => [...prev, { ...localSource, ...created }]);
+      setSources(prev => {
+        const updated = [...prev, { ...localSource, ...created }];
+        saveLocalSources(updated);
+        return updated;
+      });
       toast({ title: 'Source ajoutée', description: `"${name}" a été ajoutée` });
     } catch {
-      // Fallback local quand le backend est injoignable
-      setSources(prev => [...prev, localSource]);
+      setSources(prev => {
+        const updated = [...prev, localSource];
+        saveLocalSources(updated);
+        return updated;
+      });
       toast({ title: 'Source ajoutée (local)', description: `"${name}" ajoutée localement` });
     }
     setNewSource({ name: '', url: '' });
