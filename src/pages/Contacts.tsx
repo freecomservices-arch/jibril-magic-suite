@@ -90,6 +90,44 @@ const Contacts: React.FC = () => {
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const csvInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { toast.error('Fichier CSV vide ou invalide'); return; }
+      const headers = lines[0].split(/[;,]/).map(h => h.trim().toLowerCase());
+      const nameIdx = headers.findIndex(h => ['nom', 'name', 'contact'].includes(h));
+      const phoneIdx = headers.findIndex(h => ['telephone', 'phone', 'tel', 'téléphone', 'mobile'].includes(h));
+      const emailIdx = headers.findIndex(h => ['email', 'mail', 'e-mail'].includes(h));
+      const typeIdx = headers.findIndex(h => ['type', 'catégorie', 'categorie'].includes(h));
+      if (nameIdx === -1) { toast.error('Colonne "Nom" introuvable dans le CSV'); return; }
+
+      let imported = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(/[;,]/).map(c => c.trim());
+        const name = cols[nameIdx];
+        if (!name) continue;
+        createContact.mutate({
+          name,
+          phone: phoneIdx >= 0 ? cols[phoneIdx] || '' : '',
+          email: emailIdx >= 0 ? cols[emailIdx] || '' : '',
+          type: typeIdx >= 0 ? cols[typeIdx] || 'Acquéreur' : 'Acquéreur',
+          score: 50,
+        } as Record<string, unknown>);
+        imported++;
+      }
+      toast.success(`${imported} contact(s) importé(s) depuis le CSV`);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const confirmDelete = () => {
     if (deletingContact) {
       deleteContact.mutate(deletingContact.id);
