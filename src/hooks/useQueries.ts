@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { mockProperties, mockContacts, mockTransactions } from '@/data/mockData';
 import type { Property, Contact, Transaction } from '@/data/mockData';
 import type { Bail } from '@/components/modals/CreateBailModal';
 
@@ -159,8 +160,12 @@ export function useProperties() {
   return useQuery({
     queryKey: queryKeys.properties,
     queryFn: async () => {
-      const data = await api.properties.list();
-      return (Array.isArray(data) ? data : []).map(mapProperty);
+      try {
+        const data = await api.properties.list();
+        return (Array.isArray(data) ? data : []).map(mapProperty);
+      } catch {
+        return mockProperties;
+      }
     },
   });
 }
@@ -197,8 +202,12 @@ export function useContacts() {
   return useQuery({
     queryKey: queryKeys.contacts,
     queryFn: async () => {
-      const data = await api.contacts.list();
-      return (Array.isArray(data) ? data : []).map(mapContact);
+      try {
+        const data = await api.contacts.list();
+        return (Array.isArray(data) ? data : []).map(mapContact);
+      } catch {
+        return mockContacts;
+      }
     },
   });
 }
@@ -235,8 +244,12 @@ export function useTransactions() {
   return useQuery({
     queryKey: queryKeys.transactions,
     queryFn: async () => {
-      const data = await api.transactions.list();
-      return (Array.isArray(data) ? data : []).map(mapTransaction);
+      try {
+        const data = await api.transactions.list();
+        return (Array.isArray(data) ? data : []).map(mapTransaction);
+      } catch {
+        return mockTransactions;
+      }
     },
   });
 }
