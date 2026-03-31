@@ -89,14 +89,25 @@ const fallbackUsers: User[] = [
   },
 ];
 
-const resolveFallbackUser = (identifier?: string) => {
-  if (!identifier) return null;
+const LOGIN_ALIASES: Record<string, string> = {
+  administrateur: 'admin',
+};
+
+const normalizeIdentifier = (identifier?: string) => {
+  if (!identifier) return '';
 
   const normalized = identifier.trim().toLowerCase();
+  return LOGIN_ALIASES[normalized] ?? normalized;
+};
+
+const resolveFallbackUser = (identifier?: string) => {
+  const normalized = normalizeIdentifier(identifier);
+  if (!normalized) return null;
+
   return fallbackUsers.find(
     (candidate) =>
-      candidate.username.toLowerCase() === normalized ||
-      candidate.email?.toLowerCase() === normalized,
+      normalizeIdentifier(candidate.username) === normalized ||
+      normalizeIdentifier(candidate.email) === normalized,
   ) ?? null;
 };
 
