@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { mockProperties, mockContacts, mockTransactions } from '@/data/mockData';
 import type { Property, Contact, Transaction } from '@/data/mockData';
 import type { Bail } from '@/components/modals/CreateBailModal';
 
