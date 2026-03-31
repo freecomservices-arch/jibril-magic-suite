@@ -129,7 +129,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
+  const DEMO_CREDENTIALS: Record<string, string> = {
+    admin: 'Admin@2025',
+    directeur: 'Dir@2025!',
+    amin: 'Amin@2025',
+    sarah: 'Sarah@2025',
+    youssef: 'Youssef@2025',
+    fatima: 'Fatima@2025',
+    karim: 'Karim@2025',
+    nadia: 'Nadia@2025',
+  };
+
   const login = async (username: string, password: string) => {
+    // 1) Try the real backend first
     try {
       const response = await api.auth.login(username, password);
       const token = response?.token || response?.access || response?.access_token;
@@ -143,9 +155,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('jibril_user', JSON.stringify(normalizedUser));
       return true;
     } catch (error) {
-      console.error('Erreur login:', error);
-      throw error;
+      console.warn('Backend indisponible, tentative login local…', error);
     }
+
+    // 2) Fallback: demo credentials
+    const normalized = username.trim().toLowerCase();
+    const expectedPwd = DEMO_CREDENTIALS[normalized];
+
+    if (expectedPwd && password === expectedPwd) {
+      const demoUser = resolveFallbackUser(normalized);
+      if (demoUser) {
+        setUser(demoUser);
+        localStorage.setItem('jibril_user', JSON.stringify(demoUser));
+        return true;
+      }
+    }
+
+    throw new Error('Identifiants incorrects. Veuillez réessayer.');
   };
 
   const logout = async () => {
