@@ -152,11 +152,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (username: string, password: string) => {
+    const normalizedInput = normalizeIdentifier(username);
+
     // 1) Try the real backend first
     try {
-      const response = await api.auth.login(username, password);
+      const response = await api.auth.login(normalizedInput, password);
       const token = response?.token || response?.access || response?.access_token;
-      const normalizedUser = normalizeUser(response, username);
+      const normalizedUser = normalizeUser(response, normalizedInput);
 
       if (token) {
         localStorage.setItem('token', token);
@@ -170,11 +172,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // 2) Fallback: demo credentials
-    const normalized = username.trim().toLowerCase();
-    const expectedPwd = DEMO_CREDENTIALS[normalized];
+    const expectedPwd = DEMO_CREDENTIALS[normalizedInput];
 
     if (expectedPwd && password === expectedPwd) {
-      const demoUser = resolveFallbackUser(normalized);
+      const demoUser = resolveFallbackUser(normalizedInput);
       if (demoUser) {
         setUser(demoUser);
         localStorage.setItem('jibril_user', JSON.stringify(demoUser));
