@@ -89,42 +89,11 @@ const fallbackUsers: User[] = [
   },
 ];
 
-const LOGIN_ALIASES: Record<string, string> = {
-  administrateur: 'admin',
-};
-
-const normalizeIdentifier = (identifier?: string) => {
-  if (!identifier) return '';
-
-  const normalized = identifier.trim().toLowerCase();
-  return LOGIN_ALIASES[normalized] ?? normalized;
-};
-
-const resolveFallbackUser = (identifier?: string) => {
-  const normalized = normalizeIdentifier(identifier);
-  if (!normalized) return null;
-
+const resolveFallbackUser = (username: string) => {
+  const lower = username.trim().toLowerCase();
   return fallbackUsers.find(
-    (candidate) =>
-      normalizeIdentifier(candidate.username) === normalized ||
-      normalizeIdentifier(candidate.email) === normalized,
+    (u) => u.username.toLowerCase() === lower || u.email?.toLowerCase() === lower,
   ) ?? null;
-};
-
-const normalizeUser = (payload: any, username: string): User => {
-  const profile = payload?.user ?? payload?.data ?? payload ?? {};
-  const fallbackUser = resolveFallbackUser(
-    profile.username ?? profile.email ?? payload?.username ?? payload?.email ?? username,
-  );
-
-  return {
-    id: String(profile.id ?? profile.user_id ?? fallbackUser?.id ?? username),
-    username: profile.username ?? fallbackUser?.username ?? username,
-    name: profile.name ?? profile.full_name ?? profile.display_name ?? fallbackUser?.name ?? username,
-    role: profile.role === 'admin' || fallbackUser?.role === 'admin' ? 'admin' : 'agent',
-    email: profile.email ?? fallbackUser?.email,
-    phone: profile.phone ?? profile.telephone ?? profile.mobile ?? fallbackUser?.phone,
-  };
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
