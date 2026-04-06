@@ -26,17 +26,7 @@ const Administration = React.lazy(() => import("@/pages/Administration"));
 const SettingsPage = React.lazy(() => import("@/pages/Settings"));
 const NotFound = React.lazy(() => import("@/pages/NotFound"));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      retryDelay: 1000,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      networkMode: 'always',
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const FullPageLoader = () => (
   <div className="flex h-screen items-center justify-center bg-background">

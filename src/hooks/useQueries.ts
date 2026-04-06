@@ -236,12 +236,8 @@ export function useTransactions() {
   return useQuery({
     queryKey: queryKeys.transactions,
     queryFn: async () => {
-      try {
-        const data = await api.transactions.list();
-        return (Array.isArray(data) ? data : []).map(mapTransaction);
-      } catch {
-        return mockTransactions;
-      }
+      const data = await api.transactions.list();
+      return (Array.isArray(data) ? data : []).map(mapTransaction);
     },
   });
 }
