@@ -160,12 +160,8 @@ export function useProperties() {
   return useQuery({
     queryKey: queryKeys.properties,
     queryFn: async () => {
-      try {
-        const data = await api.properties.list();
-        return (Array.isArray(data) ? data : []).map(mapProperty);
-      } catch {
-        return mockProperties;
-      }
+      const data = await api.properties.list();
+      return (Array.isArray(data) ? data : []).map(mapProperty);
     },
   });
 }
@@ -202,12 +198,8 @@ export function useContacts() {
   return useQuery({
     queryKey: queryKeys.contacts,
     queryFn: async () => {
-      try {
-        const data = await api.contacts.list();
-        return (Array.isArray(data) ? data : []).map(mapContact);
-      } catch {
-        return mockContacts;
-      }
+      const data = await api.contacts.list();
+      return (Array.isArray(data) ? data : []).map(mapContact);
     },
   });
 }
@@ -244,12 +236,8 @@ export function useTransactions() {
   return useQuery({
     queryKey: queryKeys.transactions,
     queryFn: async () => {
-      try {
-        const data = await api.transactions.list();
-        return (Array.isArray(data) ? data : []).map(mapTransaction);
-      } catch {
-        return mockTransactions;
-      }
+      const data = await api.transactions.list();
+      return (Array.isArray(data) ? data : []).map(mapTransaction);
     },
   });
 }

@@ -89,42 +89,11 @@ const fallbackUsers: User[] = [
   },
 ];
 
-const LOGIN_ALIASES: Record<string, string> = {
-  administrateur: 'admin',
-};
-
-const normalizeIdentifier = (identifier?: string) => {
-  if (!identifier) return '';
-
-  const normalized = identifier.trim().toLowerCase();
-  return LOGIN_ALIASES[normalized] ?? normalized;
-};
-
-const resolveFallbackUser = (identifier?: string) => {
-  const normalized = normalizeIdentifier(identifier);
-  if (!normalized) return null;
-
+const resolveFallbackUser = (username: string) => {
+  const lower = username.trim().toLowerCase();
   return fallbackUsers.find(
-    (candidate) =>
-      normalizeIdentifier(candidate.username) === normalized ||
-      normalizeIdentifier(candidate.email) === normalized,
+    (u) => u.username.toLowerCase() === lower || u.email?.toLowerCase() === lower,
   ) ?? null;
-};
-
-const normalizeUser = (payload: any, username: string): User => {
-  const profile = payload?.user ?? payload?.data ?? payload ?? {};
-  const fallbackUser = resolveFallbackUser(
-    profile.username ?? profile.email ?? payload?.username ?? payload?.email ?? username,
-  );
-
-  return {
-    id: String(profile.id ?? profile.user_id ?? fallbackUser?.id ?? username),
-    username: profile.username ?? fallbackUser?.username ?? username,
-    name: profile.name ?? profile.full_name ?? profile.display_name ?? fallbackUser?.name ?? username,
-    role: profile.role === 'admin' || fallbackUser?.role === 'admin' ? 'admin' : 'agent',
-    email: profile.email ?? fallbackUser?.email,
-    phone: profile.phone ?? profile.telephone ?? profile.mobile ?? fallbackUser?.phone,
-  };
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -152,13 +121,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (username: string, password: string) => {
-    const normalizedInput = normalizeIdentifier(username);
+    const trimmed = username.trim().toLowerCase();
 
     // 1) Try the real backend first
     try {
-      const response = await api.auth.login(normalizedInput, password);
+      const response = await api.auth.login(trimmed, password);
       const token = response?.token || response?.access || response?.access_token;
-      const normalizedUser = normalizeUser(response, normalizedInput);
+      const profile = response?.user ?? response?.data ?? response ?? {};
+      const fallback = resolveFallbackUser(profile.username ?? profile.email ?? trimmed);
+
+      const normalizedUser: User = {
+        id: String(profile.id ?? profile.user_id ?? fallback?.id ?? trimmed),
+        username: profile.username ?? fallback?.username ?? trimmed,
+        name: profile.name ?? profile.full_name ?? profile.display_name ?? fallback?.name ?? trimmed,
+        role: profile.role === 'admin' || fallback?.role === 'admin' ? 'admin' : 'agent',
+        email: profile.email ?? fallback?.email,
+        phone: profile.phone ?? profile.telephone ?? profile.mobile ?? fallback?.phone,
+      };
 
       if (token) {
         localStorage.setItem('token', token);
@@ -172,10 +151,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // 2) Fallback: demo credentials
-    const expectedPwd = DEMO_CREDENTIALS[normalizedInput];
+    const expectedPwd = DEMO_CREDENTIALS[trimmed];
 
     if (expectedPwd && password === expectedPwd) {
-      const demoUser = resolveFallbackUser(normalizedInput);
+      const demoUser = resolveFallbackUser(trimmed);
       if (demoUser) {
         setUser(demoUser);
         localStorage.setItem('jibril_user', JSON.stringify(demoUser));
