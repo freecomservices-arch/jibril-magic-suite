@@ -22,6 +22,7 @@ const navItems = [
   { path: '/documents', label: 'Documents', icon: PenTool },
   { path: '/ia-vision', label: 'IA & Vision', icon: Bot },
   { path: '/scraping', label: 'Scraping', icon: Globe },
+  { path: '/matching', label: 'Matching', icon: Target },
   { path: '/communication', label: 'Communication', icon: MessageSquare },
   { path: '/statistiques', label: 'Statistiques', icon: BarChart3 },
 ];

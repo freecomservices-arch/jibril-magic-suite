@@ -58,6 +58,7 @@ const AppRoutes = () => {
         <Route path="/ia-vision" element={<AIVision />} />
         <Route path="/scraping" element={<Scraping />} />
         <Route path="/communication" element={<Communication />} />
+        <Route path="/matching" element={<Matching />} />
         <Route path="/statistiques" element={<Statistics />} />
         <Route path="/parametres" element={<SettingsPage />} />
 
