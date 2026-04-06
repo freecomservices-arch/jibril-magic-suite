@@ -22,6 +22,7 @@ const AIVision = React.lazy(() => import("@/pages/AIVision"));
 const Scraping = React.lazy(() => import("@/pages/Scraping"));
 const Communication = React.lazy(() => import("@/pages/Communication"));
 const Statistics = React.lazy(() => import("@/pages/Statistics"));
+const Matching = React.lazy(() => import("@/pages/Matching"));
 const Administration = React.lazy(() => import("@/pages/Administration"));
 const SettingsPage = React.lazy(() => import("@/pages/Settings"));
 const NotFound = React.lazy(() => import("@/pages/NotFound"));
