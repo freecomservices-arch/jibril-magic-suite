@@ -198,12 +198,8 @@ export function useContacts() {
   return useQuery({
     queryKey: queryKeys.contacts,
     queryFn: async () => {
-      try {
-        const data = await api.contacts.list();
-        return (Array.isArray(data) ? data : []).map(mapContact);
-      } catch {
-        return mockContacts;
-      }
+      const data = await api.contacts.list();
+      return (Array.isArray(data) ? data : []).map(mapContact);
     },
   });
 }
