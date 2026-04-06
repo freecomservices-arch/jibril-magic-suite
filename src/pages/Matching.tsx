@@ -568,36 +568,11 @@ export default function Matching() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard
-            title="Total matchs"
-            value={stats.total}
-            icon={<Target className="h-5 w-5" />}
-            color="primary"
-          />
-          <StatCard
-            title="Excellents (≥75%)"
-            value={stats.excellent}
-            icon={<Star className="h-5 w-5" />}
-            color="success"
-          />
-          <StatCard
-            title="Bons (≥50%)"
-            value={stats.good}
-            icon={<TrendingUp className="h-5 w-5" />}
-            color="warning"
-          />
-          <StatCard
-            title="Leads analysés"
-            value={stats.uniqueLeads}
-            icon={<Building2 className="h-5 w-5" />}
-            color="info"
-          />
-          <StatCard
-            title="Contacts matchés"
-            value={stats.uniqueContacts}
-            icon={<Users className="h-5 w-5" />}
-            color="secondary"
-          />
+          <StatCard title="Total matchs" value={stats.total} icon={Target} />
+          <StatCard title="Excellents (≥75%)" value={stats.excellent} icon={Star} variant="primary" />
+          <StatCard title="Bons (≥50%)" value={stats.good} icon={TrendingUp} variant="warning" />
+          <StatCard title="Leads analysés" value={stats.uniqueLeads} icon={Building2} variant="accent" />
+          <StatCard title="Contacts matchés" value={stats.uniqueContacts} icon={Users} />
         </div>
 
         {/* Filters */}
