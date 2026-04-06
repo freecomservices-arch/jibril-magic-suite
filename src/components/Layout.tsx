@@ -7,7 +7,7 @@ import GlobalSearch from '@/components/GlobalSearch';
 import {
   LayoutDashboard, Building2, Users, FileText, Home, PenTool,
   Bot, Globe, MessageSquare, BarChart3, Settings, Shield,
-  Bell, Search, LogOut, Menu, X, ChevronDown
+  Bell, Search, LogOut, Menu, X, ChevronDown, Target
 } from 'lucide-react';
 import { mockNotifications } from '@/data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
