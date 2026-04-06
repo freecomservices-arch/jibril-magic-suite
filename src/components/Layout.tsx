@@ -7,7 +7,7 @@ import GlobalSearch from '@/components/GlobalSearch';
 import {
   LayoutDashboard, Building2, Users, FileText, Home, PenTool,
   Bot, Globe, MessageSquare, BarChart3, Settings, Shield,
-  Bell, Search, LogOut, Menu, X, ChevronDown
+  Bell, Search, LogOut, Menu, X, ChevronDown, Target
 } from 'lucide-react';
 import { mockNotifications } from '@/data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +22,7 @@ const navItems = [
   { path: '/documents', label: 'Documents', icon: PenTool },
   { path: '/ia-vision', label: 'IA & Vision', icon: Bot },
   { path: '/scraping', label: 'Scraping', icon: Globe },
+  { path: '/matching', label: 'Matching', icon: Target },
   { path: '/communication', label: 'Communication', icon: MessageSquare },
   { path: '/statistiques', label: 'Statistiques', icon: BarChart3 },
 ];
