@@ -160,12 +160,8 @@ export function useProperties() {
   return useQuery({
     queryKey: queryKeys.properties,
     queryFn: async () => {
-      try {
-        const data = await api.properties.list();
-        return (Array.isArray(data) ? data : []).map(mapProperty);
-      } catch {
-        return mockProperties;
-      }
+      const data = await api.properties.list();
+      return (Array.isArray(data) ? data : []).map(mapProperty);
     },
   });
 }
