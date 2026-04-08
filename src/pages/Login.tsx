@@ -37,7 +37,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             <div className="flex items-center gap-3 mb-6">
               <img src={logoJibril} alt="Jibril Immo" className="h-14 w-auto" />
               <div>
-                <h1 className="font-heading text-2xl font-bold text-[hsl(220,14%,91%)]">Jibril Immo Pro</h1>
+                <h1 className="font-heading text-2xl font-bold text-[hsl(220,14%,91%)]">JIBRIL Immo Pro+</h1>
                 <p className="text-sm text-[hsl(220,14%,70%)]">Suite Immobilière — Maroc</p>
               </div>
             </div>
@@ -63,7 +63,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <img src={logoJibril} alt="Jibril Immo" className="h-10 w-auto" />
-            <h1 className="font-heading text-xl font-bold text-foreground">Jibril Immo Pro</h1>
+            <h1 className="font-heading text-xl font-bold text-foreground">JIBRIL Immo Pro+</h1>
           </div>
 
           <div className="mb-8">
