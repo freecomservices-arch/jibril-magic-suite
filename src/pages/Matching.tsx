@@ -444,14 +444,15 @@ export default function Matching() {
   // Fetch leads
   const fetchLeads = useCallback(async () => {
     try {
-      const data = await api.leads.list();
-      const mapped: Lead[] = (Array.isArray(data) ? data : []).map((l: any) => ({
+      const response = await api.leads.list({ limit: 500 });
+      const raw = response?.data || (Array.isArray(response) ? response : []);
+      const mapped: Lead[] = raw.map((l: any) => ({
         id: String(l.id),
         title: l.title || l.titre || '',
         price: l.price || l.prix || 0,
         city: l.city || l.ville || '',
         source: l.source || '',
-        type: l.type || '',
+        type: l.type || l.type_bien || '',
         phone: l.phone || l.telephone || '',
         url: l.url || l.link || '',
         status: l.status || l.statut || 'new',

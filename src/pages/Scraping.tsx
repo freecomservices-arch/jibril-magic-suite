@@ -2,8 +2,9 @@
 // JIBRIL IMMO PRO — PAGE SCRAPING (PRODUCTION)
 // =============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
+import PhotoLightbox from '@/components/PhotoLightbox';
 import StatCard from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -548,6 +549,10 @@ interface Lead {
   rooms?: number;
   description?: string;
   quartier?: string;
+  date_publication?: string;
+  score_bonne_affaire?: number | null;
+  ai_score?: number | null;
+  ai_description?: string;
 }
 
 interface ScanLog {
@@ -569,6 +574,45 @@ const sourceColors: Record<string, string> = {
   facebook: 'bg-primary/15 text-primary border-primary/20',
 };
 
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
+  if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaines`;
+  if (diffDays < 365) return `Il y a ${Math.floor(diffDays / 30)} mois`;
+  return `Il y a ${Math.floor(diffDays / 365)} ans`;
+}
+
+function mapLeadFromApi(l: any): Lead {
+  return {
+    id: String(l.id),
+    title: l.titre || l.title || '',
+    price: l.prix || l.price || 0,
+    city: l.ville || l.city || l.localisation || '',
+    source: l.source || '',
+    type: l.type_bien || l.type || '',
+    phone: l.phone || l.telephone || '',
+    url: l.url || '',
+    status: l.status || 'new',
+    created_at: l.date_scraping || l.created_at || new Date().toISOString(),
+    photos: l.photos || l.images || [],
+    surface: l.surface || l.superficie || 0,
+    bedrooms: l.chambres || l.bedrooms || 0,
+    bathrooms: l.salles_de_bain || l.bathrooms || 0,
+    rooms: l.pieces || l.rooms || 0,
+    description: l.description || '',
+    quartier: l.quartier || '',
+    date_publication: l.date_publication || null,
+    score_bonne_affaire: l.score_bonne_affaire ?? null,
+    ai_score: l.ai_score ?? null,
+    ai_description: l.ai_description || '',
+  };
+}
+
 const statusColors: Record<string, string> = {
   new: 'bg-success/15 text-success border-success/20',
   contacted: 'bg-info/15 text-info border-info/20',
@@ -589,6 +633,7 @@ const DEFAULT_SOURCES = [
 export default function Scraping() {
   const [sources, setSources] = useState<Source[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set(['avito', 'mubawab', 'facebook']));
@@ -606,8 +651,13 @@ export default function Scraping() {
   const [sourceFilter, setSourceFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [bonneAffaireFilter, setBonneAffaireFilter] = useState(false);
+  const [sortBy, setSortBy] = useState('date_publication');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const LEADS_PER_PAGE = 12;
 
   const consoleRef = useRef<HTMLDivElement>(null);
@@ -630,38 +680,20 @@ export default function Scraping() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [sourcesData, leadsData] = await Promise.all([
+      const [sourcesData, leadsResponse] = await Promise.all([
         api.sources.list().catch(() => null),
-        api.leads.list().catch(() => []),
+        api.leads.list({ limit: LEADS_PER_PAGE, offset: 0, sort: sortBy, order: sortOrder }).catch(() => ({ data: [], total: 0 })),
       ]);
       if (sourcesData) {
         const apiSources = Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || [];
         setSources(apiSources);
         saveLocalSources(apiSources);
       } else {
-        // Backend injoignable — charger depuis localStorage
         setSources(loadLocalSources());
       }
-      const mappedLeads = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
-        id: String(l.id),
-        title: l.titre || l.title || '',
-        price: l.prix || l.price || 0,
-        city: l.ville || l.city || l.localisation || '',
-        source: l.source || '',
-        type: l.type_bien || l.type || '',
-        phone: l.phone || l.telephone || '',
-        url: l.url || '',
-        status: l.status || 'new',
-        created_at: l.date_scraping || l.created_at || new Date().toISOString(),
-        photos: l.photos || l.images || [],
-        surface: l.surface || l.superficie || 0,
-        bedrooms: l.chambres || l.bedrooms || 0,
-        bathrooms: l.salles_de_bain || l.bathrooms || 0,
-        rooms: l.pieces || l.rooms || 0,
-        description: l.description || '',
-        quartier: l.quartier || '',
-      }));
-      setLeads(mappedLeads);
+      const raw = leadsResponse?.data || (Array.isArray(leadsResponse) ? leadsResponse : []);
+      setLeads(raw.map(mapLeadFromApi));
+      setTotalLeads(leadsResponse?.total || raw.length);
     } catch (err) {
       console.error('Erreur chargement:', err);
     } finally {
@@ -789,27 +821,11 @@ export default function Scraping() {
 
     // Reload leads
     try {
-      const leadsData = await api.leads.list();
-      const mapped = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
-        id: String(l.id),
-        title: l.titre || l.title || '',
-        price: l.prix || l.price || 0,
-        city: l.ville || l.city || l.localisation || '',
-        source: l.source || '',
-        type: l.type_bien || l.type || '',
-        phone: l.phone || l.telephone || '',
-        url: l.url || '',
-        status: l.status || 'new',
-        created_at: l.date_scraping || l.created_at || new Date().toISOString(),
-        photos: l.photos || l.images || [],
-        surface: l.surface || l.superficie || 0,
-        bedrooms: l.chambres || l.bedrooms || 0,
-        bathrooms: l.salles_de_bain || l.bathrooms || 0,
-        rooms: l.pieces || l.rooms || 0,
-        description: l.description || '',
-        quartier: l.quartier || '',
-      }));
-      setLeads(mapped);
+      const leadsResponse = await api.leads.list({ limit: LEADS_PER_PAGE, offset: 0, sort: sortBy, order: sortOrder });
+      const raw = leadsResponse?.data || (Array.isArray(leadsResponse) ? leadsResponse : []);
+      setLeads(raw.map(mapLeadFromApi));
+      setTotalLeads(leadsResponse?.total || raw.length);
+      setCurrentPage(1);
     } catch { /* ignore */ }
 
     setScanning(false);
@@ -827,29 +843,46 @@ export default function Scraping() {
     }
   };
 
-  // ─── Filter leads ──────────────────────────────────────────────────────
-  const filteredLeads = leads.filter(l => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!l.title.toLowerCase().includes(q) && !l.city.toLowerCase().includes(q) && !l.source.toLowerCase().includes(q)) return false;
+  // ─── Fetch leads with server-side filters/pagination ─────────────────
+  const fetchLeadsPage = useCallback(async (page: number) => {
+    try {
+      const params: Record<string, any> = {
+        limit: LEADS_PER_PAGE,
+        offset: (page - 1) * LEADS_PER_PAGE,
+        sort: sortBy,
+        order: sortOrder,
+      };
+      if (searchQuery) params.search = searchQuery;
+      if (sourceFilter) params.source = sourceFilter;
+      if (cityFilter) params.ville = cityFilter;
+      if (typeFilter) params.type_bien = typeFilter;
+      if (bonneAffaireFilter) params.bonne_affaire = true;
+
+      const response = await api.leads.list(params);
+      const raw = response?.data || (Array.isArray(response) ? response : []);
+      setLeads(raw.map(mapLeadFromApi));
+      setTotalLeads(response?.total || raw.length);
+    } catch { /* keep existing leads */ }
+  }, [searchQuery, sourceFilter, cityFilter, typeFilter, bonneAffaireFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (!loading) {
+      setCurrentPage(1);
+      fetchLeadsPage(1);
     }
-    if (sourceFilter && l.source.toLowerCase() !== sourceFilter.toLowerCase()) return false;
-    if (cityFilter && l.city !== cityFilter) return false;
-    if (typeFilter && l.type !== typeFilter) return false;
-    return true;
-  });
+  }, [searchQuery, sourceFilter, cityFilter, typeFilter, bonneAffaireFilter, sortBy, sortOrder]);
 
-  const totalPages = Math.ceil(filteredLeads.length / LEADS_PER_PAGE);
-  const paginatedLeads = React.useMemo(() => {
-    const start = (currentPage - 1) * LEADS_PER_PAGE;
-    return filteredLeads.slice(start, start + LEADS_PER_PAGE);
-  }, [filteredLeads, currentPage, LEADS_PER_PAGE]);
+  useEffect(() => {
+    if (!loading && currentPage > 1) {
+      fetchLeadsPage(currentPage);
+    }
+  }, [currentPage]);
 
-  React.useEffect(() => { setCurrentPage(1); }, [searchQuery, sourceFilter, cityFilter, typeFilter]);
+  const totalPages = Math.ceil(totalLeads / LEADS_PER_PAGE);
 
-  const uniqueCities = React.useMemo(() => [...new Set(leads.map(l => l.city).filter(Boolean))], [leads]);
-  const uniqueTypes = React.useMemo(() => [...new Set(leads.map(l => l.type).filter(Boolean))], [leads]);
-  const uniqueSources = React.useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))], [leads]);
+  const uniqueCities = useMemo(() => [...new Set(leads.map(l => l.city).filter(Boolean))], [leads]);
+  const uniqueTypes = useMemo(() => [...new Set(leads.map(l => l.type).filter(Boolean))], [leads]);
+  const uniqueSources = useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))], [leads]);
 
   // ─── Stats ──────────────────────────────────────────────────────────────
   const newLeadsToday = leads.filter(l => {
@@ -929,7 +962,7 @@ export default function Scraping() {
 
         {/* ─── Stat Cards ────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Leads" value={leads.length} subtitle="Tous les leads scrapés" icon={Database} variant="primary" />
+          <StatCard title="Total Leads" value={totalLeads.toLocaleString('fr-FR')} subtitle="Région Souss-Massa" icon={Database} variant="primary" />
           <StatCard title="Nouveaux Leads" value={newLeadsToday} subtitle="Aujourd'hui" icon={Zap} variant="accent" />
           <StatCard title="Durée du scan" value={scanDuration ? `${scanDuration}s` : '—'} subtitle="Dernier scan" icon={Timer} />
           <StatCard
@@ -1053,7 +1086,7 @@ export default function Scraping() {
             <Tabs defaultValue="results">
               <TabsList>
                 <TabsTrigger value="results" className="gap-1.5">
-                  <Search className="h-3.5 w-3.5" /> Résultats ({filteredLeads.length})
+                  <Search className="h-3.5 w-3.5" /> Résultats ({totalLeads})
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-1.5">
                   <Clock className="h-3.5 w-3.5" /> Historique
@@ -1080,6 +1113,16 @@ export default function Scraping() {
                     <option value="">Tous types</option>
                     {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none">
+                    <option value="date_publication">Plus récents</option>
+                    <option value="score_bonne_affaire">Meilleures affaires</option>
+                    <option value="prix">Prix croissant</option>
+                    <option value="ai_score">Score IA</option>
+                  </select>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={bonneAffaireFilter} onCheckedChange={(v) => setBonneAffaireFilter(!!v)} />
+                    <span className="text-xs font-medium text-foreground whitespace-nowrap">🏷️ Bonnes affaires</span>
+                  </label>
                   <div className="flex rounded-lg border border-border bg-card p-0.5">
                     <button onClick={() => setViewMode('grid')} className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Grille"><Grid3X3 className="h-4 w-4" /></button>
                     <button onClick={() => setViewMode('list')} className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Cartes"><List className="h-4 w-4" /></button>
@@ -1087,7 +1130,7 @@ export default function Scraping() {
                   </div>
                 </div>
 
-                {filteredLeads.length === 0 ? (
+                {totalLeads === 0 ? (
                   <div className="text-center py-16 text-muted-foreground">
                     <Globe className="w-12 h-12 mx-auto mb-4 opacity-30" />
                     <p className="font-medium">Aucun lead trouvé</p>
@@ -1098,7 +1141,7 @@ export default function Scraping() {
                     {/* Grid View */}
                     {viewMode === 'grid' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {paginatedLeads.map(lead => (
+                        {leads.map(lead => (
                           <div key={lead.id} className="group rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all duration-300 overflow-hidden animate-fade-in">
                             <div className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden cursor-pointer" onClick={() => setSelectedLead(lead)}>
                               {lead.photos && lead.photos.length > 0 ? (
@@ -1106,13 +1149,16 @@ export default function Scraping() {
                               ) : (
                                 <div className="absolute inset-0 flex items-center justify-center"><Building2 className="h-16 w-16 text-primary/20" /></div>
                               )}
-                              <div className="absolute top-3 left-3 flex gap-1.5">
+                              <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                                 <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[lead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
                                   {sourceIcons[lead.source.toLowerCase()] || '🌐'} {lead.source}
                                 </span>
-                                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusColors[lead.status] || 'bg-muted text-muted-foreground'}`}>
-                                  {lead.status === 'new' ? 'Nouveau' : lead.status}
-                                </span>
+                                {lead.score_bonne_affaire != null && lead.score_bonne_affaire >= 70 && (
+                                  <span className="rounded-md border border-success/30 bg-success/20 px-2 py-0.5 text-[10px] font-semibold text-success">🏷️ Bonne affaire</span>
+                                )}
+                                {lead.score_bonne_affaire != null && lead.score_bonne_affaire < 30 && (
+                                  <span className="rounded-md border border-destructive/30 bg-destructive/20 px-2 py-0.5 text-[10px] font-semibold text-destructive">Prix élevé</span>
+                                )}
                               </div>
                               {lead.photos && lead.photos.length > 0 && (
                                 <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-2 py-1 text-[10px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1133,7 +1179,15 @@ export default function Scraping() {
                               </div>
                               <div className="mt-3 flex items-center justify-between">
                                 <p className="font-heading text-lg font-bold text-primary">{formatPrice(lead.price)}</p>
+                                {lead.ai_score != null && (
+                                  <span className={`text-xs font-bold ${lead.ai_score >= 70 ? 'text-success' : lead.ai_score >= 40 ? 'text-warning' : 'text-destructive'}`}>
+                                    IA {lead.ai_score}/100
+                                  </span>
+                                )}
                               </div>
+                              <p className="mt-1 text-[10px] text-muted-foreground">
+                                {lead.date_publication ? timeAgo(lead.date_publication) : 'Date inconnue'}
+                              </p>
                               <div className="mt-3 flex gap-1.5 pt-3 border-t border-border">
                                 <button onClick={() => setSelectedLead(lead)} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
                                   <Eye className="h-3 w-3" /> Détails
@@ -1161,7 +1215,7 @@ export default function Scraping() {
                     {/* List View (cards horizontaux) */}
                     {viewMode === 'list' && (
                       <div className="space-y-3">
-                        {paginatedLeads.map(lead => (
+                        {leads.map(lead => (
                           <div key={lead.id} className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
                             <div className="relative w-full sm:w-48 h-36 sm:h-auto bg-gradient-to-br from-primary/10 via-accent/5 to-muted shrink-0 cursor-pointer" onClick={() => setSelectedLead(lead)}>
                               {lead.photos && lead.photos.length > 0 ? (
@@ -1240,7 +1294,7 @@ export default function Scraping() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                              {paginatedLeads.map(lead => (
+                              {leads.map(lead => (
                                 <tr key={lead.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedLead(lead)}>
                                   <td className="px-3 py-2">
                                     <div className="h-10 w-14 rounded bg-muted/30 overflow-hidden">
@@ -1292,7 +1346,7 @@ export default function Scraping() {
                     {totalPages > 1 && (
                       <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 card-shadow">
                         <p className="text-sm text-muted-foreground">
-                          {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, filteredLeads.length)} sur {filteredLeads.length}
+                          {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, totalLeads)} sur {totalLeads}
                         </p>
                         <div className="flex items-center gap-1">
                           <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
@@ -1424,18 +1478,30 @@ export default function Scraping() {
                   <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[selectedLead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
                     {sourceIcons[selectedLead.source.toLowerCase()] || '🌐'} {selectedLead.source}
                   </span>
-                  <span className="text-xs">Scrapé le {new Date(selectedLead.created_at).toLocaleDateString('fr-FR')}</span>
+                  {selectedLead.score_bonne_affaire != null && selectedLead.score_bonne_affaire >= 70 && (
+                    <span className="rounded-md border border-success/30 bg-success/20 px-2 py-0.5 text-[10px] font-semibold text-success">🏷️ Bonne affaire ({selectedLead.score_bonne_affaire}%)</span>
+                  )}
+                  {selectedLead.ai_score != null && (
+                    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${selectedLead.ai_score >= 70 ? 'border-success/30 bg-success/20 text-success' : selectedLead.ai_score >= 40 ? 'border-warning/30 bg-warning/20 text-warning' : 'border-destructive/30 bg-destructive/20 text-destructive'}`}>
+                      IA {selectedLead.ai_score}/100
+                    </span>
+                  )}
+                  <span className="text-xs">{selectedLead.date_publication ? timeAgo(selectedLead.date_publication) : `Scrapé le ${new Date(selectedLead.created_at).toLocaleDateString('fr-FR')}`}</span>
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Photos gallery */}
               {selectedLead.photos && selectedLead.photos.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  {selectedLead.photos.map((photo, i) => (
-                    <div key={i} className="aspect-video rounded-lg overflow-hidden bg-muted/30">
-                      <img src={photo} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                  {selectedLead.photos.slice(0, 6).map((photo, i) => (
+                    <div key={i} className="aspect-video rounded-lg overflow-hidden bg-muted/30 cursor-pointer" onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}>
+                      <img src={photo} alt={`Photo ${i + 1}`} className="h-full w-full object-cover hover:scale-105 transition-transform" />
                     </div>
                   ))}
+                  {selectedLead.photos.length > 6 && (
+                    <div className="aspect-video rounded-lg overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer" onClick={() => { setLightboxIndex(6); setLightboxOpen(true); }}>
+                      <span className="text-sm font-medium text-muted-foreground">+{selectedLead.photos.length - 6} photos</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1502,6 +1568,16 @@ export default function Scraping() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* PhotoLightbox */}
+      {selectedLead?.photos && selectedLead.photos.length > 0 && (
+        <PhotoLightbox
+          photos={selectedLead.photos.map((src, i) => ({ src, alt: `Photo ${i + 1}` }))}
+          initialIndex={lightboxIndex}
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </PageTransition>
   );
 }
