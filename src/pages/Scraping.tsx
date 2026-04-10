@@ -1149,13 +1149,16 @@ export default function Scraping() {
                               ) : (
                                 <div className="absolute inset-0 flex items-center justify-center"><Building2 className="h-16 w-16 text-primary/20" /></div>
                               )}
-                              <div className="absolute top-3 left-3 flex gap-1.5">
+                              <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                                 <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[lead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
                                   {sourceIcons[lead.source.toLowerCase()] || '🌐'} {lead.source}
                                 </span>
-                                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusColors[lead.status] || 'bg-muted text-muted-foreground'}`}>
-                                  {lead.status === 'new' ? 'Nouveau' : lead.status}
-                                </span>
+                                {lead.score_bonne_affaire != null && lead.score_bonne_affaire >= 70 && (
+                                  <span className="rounded-md border border-success/30 bg-success/20 px-2 py-0.5 text-[10px] font-semibold text-success">🏷️ Bonne affaire</span>
+                                )}
+                                {lead.score_bonne_affaire != null && lead.score_bonne_affaire < 30 && (
+                                  <span className="rounded-md border border-destructive/30 bg-destructive/20 px-2 py-0.5 text-[10px] font-semibold text-destructive">Prix élevé</span>
+                                )}
                               </div>
                               {lead.photos && lead.photos.length > 0 && (
                                 <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-foreground/60 backdrop-blur px-2 py-1 text-[10px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
