@@ -195,9 +195,8 @@ const Dashboard: React.FC = () => {
               <StatCard title="Avec Téléphone" value={`${leadsStats.avec_phone_pct || 0}%`} subtitle={`${leadsStats.avec_phone || 0} leads`} icon={Phone} variant="default" />
             </MotionCard>
           </div>
-        )}
 
-        {/* Leads by city chart */}
+          {/* Leads by city chart */}
         {leadsStats?.by_ville && leadsStats.by_ville.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <MotionCard index={8}>
