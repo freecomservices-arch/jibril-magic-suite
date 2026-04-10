@@ -9,13 +9,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   DollarSign, Building2, Users, FileSignature, TrendingUp, Calendar,
   Phone, MessageSquare, ArrowUpRight, Clock, AlertTriangle, CheckCircle2,
-  Eye, MapPin
+  Eye, MapPin, Zap, Globe, Target
 } from 'lucide-react';
 import { formatMAD } from '@/data/mockData';
 import type { Notification } from '@/data/mockData';
 import { mockNotifications } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { useProperties, useContacts, useTransactions } from '@/hooks/useQueries';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 
 const CHART_COLORS = ['hsl(217, 91%, 60%)', 'hsl(160, 84%, 39%)', 'hsl(38, 92%, 50%)', 'hsl(280, 67%, 51%)', 'hsl(0, 72%, 51%)'];
 
@@ -24,6 +26,11 @@ const Dashboard: React.FC = () => {
   const { data: properties = [], isLoading: propsLoading } = useProperties();
   const { data: contacts = [], isLoading: contactsLoading } = useContacts();
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
+  const { data: leadsStats } = useQuery({
+    queryKey: ['leads-stats'],
+    queryFn: () => api.leads.stats(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const loading = propsLoading || contactsLoading || txLoading;
 
