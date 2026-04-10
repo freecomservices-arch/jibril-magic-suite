@@ -821,27 +821,11 @@ export default function Scraping() {
 
     // Reload leads
     try {
-      const leadsData = await api.leads.list();
-      const mapped = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
-        id: String(l.id),
-        title: l.titre || l.title || '',
-        price: l.prix || l.price || 0,
-        city: l.ville || l.city || l.localisation || '',
-        source: l.source || '',
-        type: l.type_bien || l.type || '',
-        phone: l.phone || l.telephone || '',
-        url: l.url || '',
-        status: l.status || 'new',
-        created_at: l.date_scraping || l.created_at || new Date().toISOString(),
-        photos: l.photos || l.images || [],
-        surface: l.surface || l.superficie || 0,
-        bedrooms: l.chambres || l.bedrooms || 0,
-        bathrooms: l.salles_de_bain || l.bathrooms || 0,
-        rooms: l.pieces || l.rooms || 0,
-        description: l.description || '',
-        quartier: l.quartier || '',
-      }));
-      setLeads(mapped);
+      const leadsResponse = await api.leads.list({ limit: LEADS_PER_PAGE, offset: 0, sort: sortBy, order: sortOrder });
+      const raw = leadsResponse?.data || (Array.isArray(leadsResponse) ? leadsResponse : []);
+      setLeads(raw.map(mapLeadFromApi));
+      setTotalLeads(leadsResponse?.total || raw.length);
+      setCurrentPage(1);
     } catch { /* ignore */ }
 
     setScanning(false);
@@ -859,29 +843,46 @@ export default function Scraping() {
     }
   };
 
-  // ─── Filter leads ──────────────────────────────────────────────────────
-  const filteredLeads = leads.filter(l => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!l.title.toLowerCase().includes(q) && !l.city.toLowerCase().includes(q) && !l.source.toLowerCase().includes(q)) return false;
+  // ─── Fetch leads with server-side filters/pagination ─────────────────
+  const fetchLeadsPage = useCallback(async (page: number) => {
+    try {
+      const params: Record<string, any> = {
+        limit: LEADS_PER_PAGE,
+        offset: (page - 1) * LEADS_PER_PAGE,
+        sort: sortBy,
+        order: sortOrder,
+      };
+      if (searchQuery) params.search = searchQuery;
+      if (sourceFilter) params.source = sourceFilter;
+      if (cityFilter) params.ville = cityFilter;
+      if (typeFilter) params.type_bien = typeFilter;
+      if (bonneAffaireFilter) params.bonne_affaire = true;
+
+      const response = await api.leads.list(params);
+      const raw = response?.data || (Array.isArray(response) ? response : []);
+      setLeads(raw.map(mapLeadFromApi));
+      setTotalLeads(response?.total || raw.length);
+    } catch { /* keep existing leads */ }
+  }, [searchQuery, sourceFilter, cityFilter, typeFilter, bonneAffaireFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (!loading) {
+      setCurrentPage(1);
+      fetchLeadsPage(1);
     }
-    if (sourceFilter && l.source.toLowerCase() !== sourceFilter.toLowerCase()) return false;
-    if (cityFilter && l.city !== cityFilter) return false;
-    if (typeFilter && l.type !== typeFilter) return false;
-    return true;
-  });
+  }, [searchQuery, sourceFilter, cityFilter, typeFilter, bonneAffaireFilter, sortBy, sortOrder]);
 
-  const totalPages = Math.ceil(filteredLeads.length / LEADS_PER_PAGE);
-  const paginatedLeads = React.useMemo(() => {
-    const start = (currentPage - 1) * LEADS_PER_PAGE;
-    return filteredLeads.slice(start, start + LEADS_PER_PAGE);
-  }, [filteredLeads, currentPage, LEADS_PER_PAGE]);
+  useEffect(() => {
+    if (!loading && currentPage > 1) {
+      fetchLeadsPage(currentPage);
+    }
+  }, [currentPage]);
 
-  React.useEffect(() => { setCurrentPage(1); }, [searchQuery, sourceFilter, cityFilter, typeFilter]);
+  const totalPages = Math.ceil(totalLeads / LEADS_PER_PAGE);
 
-  const uniqueCities = React.useMemo(() => [...new Set(leads.map(l => l.city).filter(Boolean))], [leads]);
-  const uniqueTypes = React.useMemo(() => [...new Set(leads.map(l => l.type).filter(Boolean))], [leads]);
-  const uniqueSources = React.useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))], [leads]);
+  const uniqueCities = useMemo(() => [...new Set(leads.map(l => l.city).filter(Boolean))], [leads]);
+  const uniqueTypes = useMemo(() => [...new Set(leads.map(l => l.type).filter(Boolean))], [leads]);
+  const uniqueSources = useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))], [leads]);
 
   // ─── Stats ──────────────────────────────────────────────────────────────
   const newLeadsToday = leads.filter(l => {
