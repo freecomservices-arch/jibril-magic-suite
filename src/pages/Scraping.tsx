@@ -1568,6 +1568,16 @@ export default function Scraping() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* PhotoLightbox */}
+      {selectedLead?.photos && selectedLead.photos.length > 0 && (
+        <PhotoLightbox
+          photos={selectedLead.photos.map((src, i) => ({ src, alt: `Photo ${i + 1}` }))}
+          initialIndex={lightboxIndex}
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </PageTransition>
   );
 }
