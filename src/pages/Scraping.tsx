@@ -574,6 +574,45 @@ const sourceColors: Record<string, string> = {
   facebook: 'bg-primary/15 text-primary border-primary/20',
 };
 
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
+  if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaines`;
+  if (diffDays < 365) return `Il y a ${Math.floor(diffDays / 30)} mois`;
+  return `Il y a ${Math.floor(diffDays / 365)} ans`;
+}
+
+function mapLeadFromApi(l: any): Lead {
+  return {
+    id: String(l.id),
+    title: l.titre || l.title || '',
+    price: l.prix || l.price || 0,
+    city: l.ville || l.city || l.localisation || '',
+    source: l.source || '',
+    type: l.type_bien || l.type || '',
+    phone: l.phone || l.telephone || '',
+    url: l.url || '',
+    status: l.status || 'new',
+    created_at: l.date_scraping || l.created_at || new Date().toISOString(),
+    photos: l.photos || l.images || [],
+    surface: l.surface || l.superficie || 0,
+    bedrooms: l.chambres || l.bedrooms || 0,
+    bathrooms: l.salles_de_bain || l.bathrooms || 0,
+    rooms: l.pieces || l.rooms || 0,
+    description: l.description || '',
+    quartier: l.quartier || '',
+    date_publication: l.date_publication || null,
+    score_bonne_affaire: l.score_bonne_affaire ?? null,
+    ai_score: l.ai_score ?? null,
+    ai_description: l.ai_description || '',
+  };
+}
+
 const statusColors: Record<string, string> = {
   new: 'bg-success/15 text-success border-success/20',
   contacted: 'bg-info/15 text-info border-info/20',
