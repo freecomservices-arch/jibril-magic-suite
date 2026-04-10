@@ -30,6 +30,7 @@ const Dashboard: React.FC = () => {
     queryKey: ['leads-stats'],
     queryFn: () => api.leads.stats(),
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   const loading = propsLoading || contactsLoading || txLoading;

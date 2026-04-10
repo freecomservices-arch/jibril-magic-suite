@@ -163,6 +163,8 @@ export function useProperties() {
       const data = await api.properties.list();
       return (Array.isArray(data) ? data : []).map(mapProperty);
     },
+    retry: 1,
+    placeholderData: mockProperties,
   });
 }
 
@@ -201,6 +203,8 @@ export function useContacts() {
       const data = await api.contacts.list();
       return (Array.isArray(data) ? data : []).map(mapContact);
     },
+    retry: 1,
+    placeholderData: mockContacts,
   });
 }
 
@@ -239,6 +243,8 @@ export function useTransactions() {
       const data = await api.transactions.list();
       return (Array.isArray(data) ? data : []).map(mapTransaction);
     },
+    retry: 1,
+    placeholderData: mockTransactions,
   });
 }
 
