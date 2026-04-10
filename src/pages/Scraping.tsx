@@ -1086,7 +1086,7 @@ export default function Scraping() {
             <Tabs defaultValue="results">
               <TabsList>
                 <TabsTrigger value="results" className="gap-1.5">
-                  <Search className="h-3.5 w-3.5" /> Résultats ({filteredLeads.length})
+                  <Search className="h-3.5 w-3.5" /> Résultats ({totalLeads})
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-1.5">
                   <Clock className="h-3.5 w-3.5" /> Historique
@@ -1120,7 +1120,7 @@ export default function Scraping() {
                   </div>
                 </div>
 
-                {filteredLeads.length === 0 ? (
+                {totalLeads === 0 ? (
                   <div className="text-center py-16 text-muted-foreground">
                     <Globe className="w-12 h-12 mx-auto mb-4 opacity-30" />
                     <p className="font-medium">Aucun lead trouvé</p>
@@ -1131,7 +1131,7 @@ export default function Scraping() {
                     {/* Grid View */}
                     {viewMode === 'grid' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {paginatedLeads.map(lead => (
+                        {leads.map(lead => (
                           <div key={lead.id} className="group rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all duration-300 overflow-hidden animate-fade-in">
                             <div className="relative h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden cursor-pointer" onClick={() => setSelectedLead(lead)}>
                               {lead.photos && lead.photos.length > 0 ? (
@@ -1194,7 +1194,7 @@ export default function Scraping() {
                     {/* List View (cards horizontaux) */}
                     {viewMode === 'list' && (
                       <div className="space-y-3">
-                        {paginatedLeads.map(lead => (
+                        {leads.map(lead => (
                           <div key={lead.id} className="group flex flex-col sm:flex-row rounded-lg border border-border bg-card card-shadow hover:elevated-shadow transition-all overflow-hidden animate-fade-in">
                             <div className="relative w-full sm:w-48 h-36 sm:h-auto bg-gradient-to-br from-primary/10 via-accent/5 to-muted shrink-0 cursor-pointer" onClick={() => setSelectedLead(lead)}>
                               {lead.photos && lead.photos.length > 0 ? (
@@ -1273,7 +1273,7 @@ export default function Scraping() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                              {paginatedLeads.map(lead => (
+                              {leads.map(lead => (
                                 <tr key={lead.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setSelectedLead(lead)}>
                                   <td className="px-3 py-2">
                                     <div className="h-10 w-14 rounded bg-muted/30 overflow-hidden">
@@ -1325,7 +1325,7 @@ export default function Scraping() {
                     {totalPages > 1 && (
                       <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 card-shadow">
                         <p className="text-sm text-muted-foreground">
-                          {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, filteredLeads.length)} sur {filteredLeads.length}
+                          {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, totalLeads)} sur {totalLeads}
                         </p>
                         <div className="flex items-center gap-1">
                           <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors">
