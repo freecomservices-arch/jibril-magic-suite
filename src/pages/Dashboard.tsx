@@ -197,7 +197,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Leads by city chart */}
-        {leadsStats?.by_ville && leadsStats.by_ville.length > 0 && (
+          {leadsStats?.by_ville && leadsStats.by_ville.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <MotionCard index={8}>
               <div className="rounded-lg border border-border bg-card p-5 card-shadow h-full">
