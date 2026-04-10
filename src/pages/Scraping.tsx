@@ -2,8 +2,9 @@
 // JIBRIL IMMO PRO — PAGE SCRAPING (PRODUCTION)
 // =============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import PageTransition from '@/components/PageTransition';
+import PhotoLightbox from '@/components/PhotoLightbox';
 import StatCard from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
