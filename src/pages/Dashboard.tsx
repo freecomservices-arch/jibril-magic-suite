@@ -173,6 +173,14 @@ const Dashboard: React.FC = () => {
 
         {/* Leads Stats from Scraping */}
         {leadsStats && (
+          <>
+          {isLeadsDemo && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs bg-warning/15 text-warning border-warning/30">
+                ⚠️ Données démo — Backend inaccessible
+              </Badge>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MotionCard index={4}>
               <StatCard title="Leads Scrapés" value={leadsStats.total?.toLocaleString('fr-FR') || '0'} subtitle="Région Souss-Massa" icon={Globe} variant="primary" />
