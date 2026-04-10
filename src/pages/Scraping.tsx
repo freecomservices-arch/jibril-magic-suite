@@ -548,6 +548,10 @@ interface Lead {
   rooms?: number;
   description?: string;
   quartier?: string;
+  date_publication?: string;
+  score_bonne_affaire?: number | null;
+  ai_score?: number | null;
+  ai_description?: string;
 }
 
 interface ScanLog {
@@ -589,6 +593,7 @@ const DEFAULT_SOURCES = [
 export default function Scraping() {
   const [sources, setSources] = useState<Source[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set(['avito', 'mubawab', 'facebook']));
@@ -606,8 +611,13 @@ export default function Scraping() {
   const [sourceFilter, setSourceFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [bonneAffaireFilter, setBonneAffaireFilter] = useState(false);
+  const [sortBy, setSortBy] = useState('date_publication');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const LEADS_PER_PAGE = 12;
 
   const consoleRef = useRef<HTMLDivElement>(null);
