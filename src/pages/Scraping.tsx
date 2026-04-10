@@ -1478,20 +1478,32 @@ export default function Scraping() {
                   <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sourceColors[selectedLead.source.toLowerCase()] || 'bg-muted text-muted-foreground'}`}>
                     {sourceIcons[selectedLead.source.toLowerCase()] || '🌐'} {selectedLead.source}
                   </span>
-                  <span className="text-xs">Scrapé le {new Date(selectedLead.created_at).toLocaleDateString('fr-FR')}</span>
+                  {selectedLead.score_bonne_affaire != null && selectedLead.score_bonne_affaire >= 70 && (
+                    <span className="rounded-md border border-success/30 bg-success/20 px-2 py-0.5 text-[10px] font-semibold text-success">🏷️ Bonne affaire ({selectedLead.score_bonne_affaire}%)</span>
+                  )}
+                  {selectedLead.ai_score != null && (
+                    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${selectedLead.ai_score >= 70 ? 'border-success/30 bg-success/20 text-success' : selectedLead.ai_score >= 40 ? 'border-warning/30 bg-warning/20 text-warning' : 'border-destructive/30 bg-destructive/20 text-destructive'}`}>
+                      IA {selectedLead.ai_score}/100
+                    </span>
+                  )}
+                  <span className="text-xs">{selectedLead.date_publication ? timeAgo(selectedLead.date_publication) : `Scrapé le ${new Date(selectedLead.created_at).toLocaleDateString('fr-FR')}`}</span>
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Photos gallery */}
               {selectedLead.photos && selectedLead.photos.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  {selectedLead.photos.map((photo, i) => (
-                    <div key={i} className="aspect-video rounded-lg overflow-hidden bg-muted/30">
-                      <img src={photo} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                  {selectedLead.photos.slice(0, 6).map((photo, i) => (
+                    <div key={i} className="aspect-video rounded-lg overflow-hidden bg-muted/30 cursor-pointer" onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}>
+                      <img src={photo} alt={`Photo ${i + 1}`} className="h-full w-full object-cover hover:scale-105 transition-transform" />
                     </div>
                   ))}
+                  {selectedLead.photos.length > 6 && (
+                    <div className="aspect-video rounded-lg overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer" onClick={() => { setLightboxIndex(6); setLightboxOpen(true); }}>
+                      <span className="text-sm font-medium text-muted-foreground">+{selectedLead.photos.length - 6} photos</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              )
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
