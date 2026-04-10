@@ -962,7 +962,7 @@ export default function Scraping() {
 
         {/* ─── Stat Cards ────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Leads" value={leads.length} subtitle="Tous les leads scrapés" icon={Database} variant="primary" />
+          <StatCard title="Total Leads" value={totalLeads.toLocaleString('fr-FR')} subtitle="Région Souss-Massa" icon={Database} variant="primary" />
           <StatCard title="Nouveaux Leads" value={newLeadsToday} subtitle="Aujourd'hui" icon={Zap} variant="accent" />
           <StatCard title="Durée du scan" value={scanDuration ? `${scanDuration}s` : '—'} subtitle="Dernier scan" icon={Timer} />
           <StatCard
