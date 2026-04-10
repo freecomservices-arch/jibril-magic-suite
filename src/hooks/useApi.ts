@@ -63,7 +63,7 @@ export function useSources() {
 }
 
 export function useLeads() {
-  const { data, loading, error, execute } = useApi<any[]>();
+  const { data, loading, error, execute } = useApi<{ total: number; data: any[] }>();
   
   const fetchLeads = useCallback((params?: any) => 
     execute(() => api.leads.list(params)), 
@@ -73,7 +73,7 @@ export function useLeads() {
     execute(() => api.leads.update(id, data)), 
   [execute]);
   
-  return { leads: data, loading, error, fetchLeads, updateLead };
+  return { leads: data?.data || [], total: data?.total || 0, loading, error, fetchLeads, updateLead };
 }
 
 // useAuth is provided by AuthContext — do not duplicate here

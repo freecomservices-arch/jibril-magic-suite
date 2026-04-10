@@ -119,17 +119,19 @@ export const api = {
   },
 
   leads: {
-    list: (params?: Record<string, string | number | undefined>) => {
-      const filtered = params
-        ? Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
-        : {};
+    list: (params?: Record<string, string | number | boolean | undefined>) => {
+      const defaults: Record<string, string> = { sort: 'date_publication', order: 'desc' };
+      const merged = { ...defaults, ...(params || {}) };
+      const filtered = Object.fromEntries(
+        Object.entries(merged).filter(([, v]) => v != null && v !== '' && v !== false)
+      );
       const qs = Object.keys(filtered).length
         ? '?' + new URLSearchParams(filtered as Record<string, string>).toString()
         : '';
       return apiClient(`/leads/${qs}`);
     },
     count: () => apiClient('/leads/count'),
-    stats: () => apiClient('/leads/stats'),
+    stats: () => apiClient('/leads/stats/'),
     update: (id: string, data: { statut?: string; notes?: string }) =>
       apiClient(`/leads/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) =>
