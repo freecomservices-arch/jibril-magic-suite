@@ -214,7 +214,8 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-          <MotionCard index={4} className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <MotionCard index={10} className="lg:col-span-2">
             <div className="rounded-lg border border-border bg-card p-5 card-shadow h-full">
               <div className="flex items-center justify-between mb-4">
                 <div>
