@@ -680,38 +680,20 @@ export default function Scraping() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [sourcesData, leadsData] = await Promise.all([
+      const [sourcesData, leadsResponse] = await Promise.all([
         api.sources.list().catch(() => null),
-        api.leads.list().catch(() => []),
+        api.leads.list({ limit: LEADS_PER_PAGE, offset: 0, sort: sortBy, order: sortOrder }).catch(() => ({ data: [], total: 0 })),
       ]);
       if (sourcesData) {
         const apiSources = Array.isArray(sourcesData) ? sourcesData : sourcesData?.results || [];
         setSources(apiSources);
         saveLocalSources(apiSources);
       } else {
-        // Backend injoignable — charger depuis localStorage
         setSources(loadLocalSources());
       }
-      const mappedLeads = (Array.isArray(leadsData) ? leadsData : leadsData?.results || []).map((l: any) => ({
-        id: String(l.id),
-        title: l.titre || l.title || '',
-        price: l.prix || l.price || 0,
-        city: l.ville || l.city || l.localisation || '',
-        source: l.source || '',
-        type: l.type_bien || l.type || '',
-        phone: l.phone || l.telephone || '',
-        url: l.url || '',
-        status: l.status || 'new',
-        created_at: l.date_scraping || l.created_at || new Date().toISOString(),
-        photos: l.photos || l.images || [],
-        surface: l.surface || l.superficie || 0,
-        bedrooms: l.chambres || l.bedrooms || 0,
-        bathrooms: l.salles_de_bain || l.bathrooms || 0,
-        rooms: l.pieces || l.rooms || 0,
-        description: l.description || '',
-        quartier: l.quartier || '',
-      }));
-      setLeads(mappedLeads);
+      const raw = leadsResponse?.data || (Array.isArray(leadsResponse) ? leadsResponse : []);
+      setLeads(raw.map(mapLeadFromApi));
+      setTotalLeads(leadsResponse?.total || raw.length);
     } catch (err) {
       console.error('Erreur chargement:', err);
     } finally {
