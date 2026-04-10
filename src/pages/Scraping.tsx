@@ -1179,7 +1179,15 @@ export default function Scraping() {
                               </div>
                               <div className="mt-3 flex items-center justify-between">
                                 <p className="font-heading text-lg font-bold text-primary">{formatPrice(lead.price)}</p>
+                                {lead.ai_score != null && (
+                                  <span className={`text-xs font-bold ${lead.ai_score >= 70 ? 'text-success' : lead.ai_score >= 40 ? 'text-warning' : 'text-destructive'}`}>
+                                    IA {lead.ai_score}/100
+                                  </span>
+                                )}
                               </div>
+                              <p className="mt-1 text-[10px] text-muted-foreground">
+                                {lead.date_publication ? timeAgo(lead.date_publication) : 'Date inconnue'}
+                              </p>
                               <div className="mt-3 flex gap-1.5 pt-3 border-t border-border">
                                 <button onClick={() => setSelectedLead(lead)} className="flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors">
                                   <Eye className="h-3 w-3" /> Détails
