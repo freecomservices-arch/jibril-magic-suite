@@ -137,7 +137,83 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Leads Stats from Scraping */}
+        {leadsStats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MotionCard index={4}>
+              <StatCard title="Leads Scrapés" value={leadsStats.total?.toLocaleString('fr-FR') || '0'} subtitle="Région Souss-Massa" icon={Globe} variant="primary" />
+            </MotionCard>
+            <MotionCard index={5}>
+              <StatCard title="Récents (7j)" value={leadsStats.recent_7j || 0} subtitle={`${leadsStats.recent_30j || 0} sur 30 jours`} icon={Zap} variant="accent" />
+            </MotionCard>
+            <MotionCard index={6}>
+              <StatCard title="Bonnes Affaires" value={leadsStats.bonnes_affaires || 0} subtitle="Score ≥ 70%" icon={Target} variant="warning" />
+            </MotionCard>
+            <MotionCard index={7}>
+              <StatCard title="Avec Téléphone" value={`${leadsStats.avec_phone_pct || 0}%`} subtitle={`${leadsStats.avec_phone || 0} leads`} icon={Phone} variant="default" />
+            </MotionCard>
+          </div>
+        )}
+
+        {/* Leads by city chart */}
+        {leadsStats?.by_ville && leadsStats.by_ville.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <MotionCard index={8}>
+              <div className="rounded-lg border border-border bg-card p-5 card-shadow h-full">
+                <h3 className="font-heading text-sm font-semibold text-card-foreground flex items-center gap-2 mb-4">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Leads par Ville
+                </h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={leadsStats.by_ville.slice(0, 6)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="ville" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                    <Bar dataKey="count" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} name="Leads" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </MotionCard>
+
+            <MotionCard index={9}>
+              <div className="rounded-lg border border-border bg-card p-5 card-shadow h-full">
+                <h3 className="font-heading text-sm font-semibold text-card-foreground flex items-center gap-2 mb-4">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  Répartition par Type
+                </h3>
+                {leadsStats.by_type && leadsStats.by_type.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie data={leadsStats.by_type} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="count" nameKey="type_bien" paddingAngle={3}>
+                          {leadsStats.by_type.map((_: any, i: number) => (
+                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="mt-2 space-y-1.5">
+                      {leadsStats.by_type.map((t: any, i: number) => (
+                        <div key={t.type_bien} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                            <span className="text-card-foreground capitalize">{t.type_bien}</span>
+                          </div>
+                          <span className="font-medium text-card-foreground">{t.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-[180px] text-sm text-muted-foreground">Aucune donnée</div>
+                )}
+              </div>
+            </MotionCard>
+          </div>
+        )}
+
           <MotionCard index={4} className="lg:col-span-2">
             <div className="rounded-lg border border-border bg-card p-5 card-shadow h-full">
               <div className="flex items-center justify-between mb-4">
