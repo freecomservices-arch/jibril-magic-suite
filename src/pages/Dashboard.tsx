@@ -57,12 +57,14 @@ const Dashboard: React.FC = () => {
   const { data: properties = [], isLoading: propsLoading } = useProperties();
   const { data: contacts = [], isLoading: contactsLoading } = useContacts();
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
-  const { data: leadsStats } = useQuery({
+  const { data: leadsStats, isError: leadsStatsError } = useQuery({
     queryKey: ['leads-stats'],
     queryFn: () => api.leads.stats(),
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    placeholderData: fallbackLeadsStats,
   });
+  const isLeadsDemo = leadsStatsError || !leadsStats || leadsStats === fallbackLeadsStats;
 
   const loading = propsLoading || contactsLoading || txLoading;
 
