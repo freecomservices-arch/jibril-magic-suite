@@ -1113,6 +1113,16 @@ export default function Scraping() {
                     <option value="">Tous types</option>
                     {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none">
+                    <option value="date_publication">Plus récents</option>
+                    <option value="score_bonne_affaire">Meilleures affaires</option>
+                    <option value="prix">Prix croissant</option>
+                    <option value="ai_score">Score IA</option>
+                  </select>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={bonneAffaireFilter} onCheckedChange={(v) => setBonneAffaireFilter(!!v)} />
+                    <span className="text-xs font-medium text-foreground whitespace-nowrap">🏷️ Bonnes affaires</span>
+                  </label>
                   <div className="flex rounded-lg border border-border bg-card p-0.5">
                     <button onClick={() => setViewMode('grid')} className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Grille"><Grid3X3 className="h-4 w-4" /></button>
                     <button onClick={() => setViewMode('list')} className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`} title="Cartes"><List className="h-4 w-4" /></button>
