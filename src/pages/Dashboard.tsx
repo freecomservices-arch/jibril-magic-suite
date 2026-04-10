@@ -254,6 +254,8 @@ const Dashboard: React.FC = () => {
             </MotionCard>
           </div>
         )}
+        </>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <MotionCard index={10} className="lg:col-span-2">
