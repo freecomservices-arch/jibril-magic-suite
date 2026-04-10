@@ -18,20 +18,53 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useProperties, useContacts, useTransactions } from '@/hooks/useQueries';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { Badge } from '@/components/ui/badge';
 
 const CHART_COLORS = ['hsl(217, 91%, 60%)', 'hsl(160, 84%, 39%)', 'hsl(38, 92%, 50%)', 'hsl(280, 67%, 51%)', 'hsl(0, 72%, 51%)'];
+
+const fallbackLeadsStats = {
+  total: 10164,
+  avec_phone: 9484,
+  avec_phone_pct: 93.3,
+  recent_7j: 863,
+  recent_30j: 2085,
+  bonnes_affaires: 1777,
+  by_source: [
+    { source: 'avito', count: 10015 },
+    { source: 'mubawab', count: 142 },
+  ],
+  by_ville: [
+    { ville: 'Agadir', count: 8596, prix_m2_moyen: 15315, prix_moyen: 916088 },
+    { ville: 'Tiznit', count: 400, prix_m2_moyen: 8200, prix_moyen: 450000 },
+    { ville: 'Inezgane', count: 520, prix_m2_moyen: 10200, prix_moyen: 620000 },
+    { ville: 'Taroudant', count: 350, prix_m2_moyen: 7500, prix_moyen: 380000 },
+    { ville: 'Aït Melloul', count: 298, prix_m2_moyen: 9800, prix_moyen: 540000 },
+  ],
+  by_type: [
+    { type_bien: 'appartement', count: 5200, prix_moyen: 750000 },
+    { type_bien: 'villa', count: 1800, prix_moyen: 2100000 },
+    { type_bien: 'terrain', count: 1500, prix_moyen: 500000 },
+    { type_bien: 'local commercial', count: 900, prix_moyen: 1200000 },
+    { type_bien: 'maison', count: 764, prix_moyen: 950000 },
+  ],
+  prix: { min: 50000, max: 25000000, moyen: 916088 },
+  prix_m2: { min: 1000, max: 80000, moyen: 15315 },
+  scores: { bonne_affaire_70plus: 1777, normal_50_70: 6200, cher_moins_50: 2187 },
+};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { data: properties = [], isLoading: propsLoading } = useProperties();
   const { data: contacts = [], isLoading: contactsLoading } = useContacts();
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
-  const { data: leadsStats } = useQuery({
+  const { data: leadsStats, isError: leadsStatsError } = useQuery({
     queryKey: ['leads-stats'],
     queryFn: () => api.leads.stats(),
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    placeholderData: fallbackLeadsStats,
   });
+  const isLeadsDemo = leadsStatsError || !leadsStats || leadsStats === fallbackLeadsStats;
 
   const loading = propsLoading || contactsLoading || txLoading;
 
@@ -140,6 +173,14 @@ const Dashboard: React.FC = () => {
 
         {/* Leads Stats from Scraping */}
         {leadsStats && (
+          <>
+          {isLeadsDemo && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs bg-warning/15 text-warning border-warning/30">
+                ⚠️ Données démo — Backend inaccessible
+              </Badge>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MotionCard index={4}>
               <StatCard title="Leads Scrapés" value={leadsStats.total?.toLocaleString('fr-FR') || '0'} subtitle="Région Souss-Massa" icon={Globe} variant="primary" />
@@ -154,10 +195,9 @@ const Dashboard: React.FC = () => {
               <StatCard title="Avec Téléphone" value={`${leadsStats.avec_phone_pct || 0}%`} subtitle={`${leadsStats.avec_phone || 0} leads`} icon={Phone} variant="default" />
             </MotionCard>
           </div>
-        )}
 
-        {/* Leads by city chart */}
-        {leadsStats?.by_ville && leadsStats.by_ville.length > 0 && (
+          {/* Leads by city chart */}
+          {leadsStats?.by_ville && leadsStats.by_ville.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <MotionCard index={8}>
               <div className="rounded-lg border border-border bg-card p-5 card-shadow h-full">
@@ -213,6 +253,8 @@ const Dashboard: React.FC = () => {
               </div>
             </MotionCard>
           </div>
+        )}
+        </>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
